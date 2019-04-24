@@ -5,10 +5,10 @@ using System.Linq;
 using System.Text;
 
 namespace taa {
-    public class Parser {
+    public class WvParser {
         public string Path { get; }
 
-        public Parser(string p) {
+        public WvParser(string p) {
             Path = p;
         }
 
@@ -31,6 +31,8 @@ namespace taa {
     public class WvCSV {
         public IReadOnlyList<Element> Data { get; }
         public Header Header { get; }
+
+        public int Length => Data.Count;
 
         public WvCSV(Document d) {
             Header = d.Header;
