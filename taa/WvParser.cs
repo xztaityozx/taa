@@ -38,6 +38,8 @@ namespace taa {
             Header = d.Header;
             Data = d.GetElements().ToList();
         }
+
+        public decimal this[int idx, decimal time] => Data[idx].Values[time];
     }
 
     public struct Header {

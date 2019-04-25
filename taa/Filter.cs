@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Runtime.Serialization;
@@ -24,10 +25,6 @@ namespace taa {
         [YamlMember(Alias = "answer")]
         public string Answer { get; }
 
-        public Filter() {
-            ConditionList=new Dictionary<string, string>();
-            TargetList=new List<string>();
-        }
 
         public Filter(Dictionary<string, string> d, List<string> t) {
             ConditionList = d;
@@ -35,23 +32,32 @@ namespace taa {
         }
 
         public void Build() {
-            actionDictionary = new Dictionary<string, Dictionary<decimal, Func<decimal, bool>>>();
-            conditionDictionary=new Dictionary<string, Tuple<string, decimal>>();
-            
             BuildCondition();
-
             BuildTarget();
+            ParseAnswer();
         }
 
         private void BuildTarget() {
             targetExpressionList = new List<string[]>();
             foreach (var item in TargetList) {
-                targetExpressionList.Add(item.Replace("&&", " && ").Replace("||", " || ")
+                targetExpressionList.Add(item.Replace("&&", " and ")
+                    .Replace("||", " or ")
+                    .Replace("!"," not ")
+                    .Replace("("," ( ")
+                    .Replace(")"," ) ")
                     .Split(' ', StringSplitOptions.RemoveEmptyEntries));
             }
         }
 
+        public IEnumerable<string> ParsedAnswer { get; private set; }
+        private void ParseAnswer() {
+            ParsedAnswer = new[] {"+", "-", "*", "/", "(", ")"}
+                .Aggregate(Answer, (current, ope) => current.Replace(ope, $" {ope} "))
+                .Split(' ');
+        }
+
         private void BuildCondition() {
+            conditionDictionary=new Dictionary<string, Tuple<string, decimal, string>>();
             foreach (var (key, v) in ConditionList) {
                 // cond format
                 // {Signal}[{Time}{SIUnit}?]{Operator}{Value}{SIUnit}?
@@ -63,58 +69,39 @@ namespace taa {
 
                 var box = v.Trim(' ').Split('[', ']');
                 var signal = box[0];
-                var time = ParseSIUnit(box[1]);
+                var time = ParseDecimalWithSiUnit(box[1]);
                 var ope = box[2][1] == '=' ? box[2].Substring(0, 2) : $"{box[2][0]}";
-                var value = ParseSIUnit(box[2].Substring(ope.Length, box[2].Length - ope.Length));
+                var value = ParseDecimalWithSiUnit(box[2].Substring(ope.Length, box[2].Length - ope.Length));
 
-                if (!actionDictionary.ContainsKey(signal)) actionDictionary.Add(signal, new Dictionary<decimal, Func<decimal, bool>>());
-                actionDictionary[signal].Add(time, MakeFunc(ope, value));
+                conditionDictionary.Add(key, new Tuple<string, decimal, string>(signal, time, $"{ope}{value}"));
 
-                if (conditionDictionary.ContainsKey(signal)) throw new Exception($"{signal} already declared");
-                conditionDictionary.Add(key, new Tuple<string, decimal>(signal, time));
             }
         }
 
-        private static Func<decimal, bool> MakeFunc(string ope, decimal val) {
-            if (ope == "<") return (d) => d < val;
-            if (ope == "<=") return (d) => d <= val;
-            if (ope == ">") return (d) => d > val;
-            if (ope == ">=") return (d) => d >= val;
-            if (ope == "==") return (d) => d == val;
-            if (ope == "!=") return (d) => d != val;
 
-            throw new Exception($"Unexpected operator: {ope}");
+
+        public static decimal ParseDecimalWithSiUnit(string s) {
+            return decimal.Parse(s.Replace("G", "E09")
+                    .Replace("M", "E06")
+                    .Replace("K", "E03")
+                    .Replace("m", "E-03")
+                    .Replace("u", "E-06")
+                    .Replace("n", "E-09")
+                    .Replace("p", "E-12"),
+                NumberStyles.Float);
         }
 
-        public static decimal ParseSIUnit(string s) {
-            decimal Func(string input) {
-                if (decimal.TryParse(input, out _)) return 1M;
-                if (input == "G") return 1e9M;
-                if (input == "M") return 1e6M;
-                if (input == "K") return 1e3M;
-                if (input == "m") return 1e-3M;
-                if (input == "u") return 1e-6M;
-                if (input == "n") return 1e-9M;
-                if (input == "p") return 1e-12M;
-
-                throw new Exception($"Unexpected SI Unit: {input}");
-            }
-
-            var unit = Func($"{s.Last()}");
-            if (unit != 1M) {
-                s = s.Substring(0, s.Length - 1);
-            }
-
-            return decimal.Parse(s) * unit;
-
-        }
-        private Dictionary<string, Dictionary<decimal, Func<decimal, bool>>> actionDictionary;
-        private Dictionary<string, Tuple<string, decimal>> conditionDictionary;
+        private Dictionary<string, Tuple<string, decimal, string>> conditionDictionary;
         private List<string[]> targetExpressionList;
 
-        public Tuple<string,decimal> this[string name] => conditionDictionary[name];
-        public Func<decimal, bool> this[string signal, decimal time] => actionDictionary[signal][time];
-        public string[] this[int idx] => targetExpressionList[idx];
+        public IReadOnlyList<string[]> Targets => targetExpressionList;
+        
+        public Tuple<string, decimal, string> this[string name] {
+            get {
+                var (s, d, c) = conditionDictionary[name];
+                return Tuple.Create(s, d, c);
+            }
+        }
     }
 
 }
