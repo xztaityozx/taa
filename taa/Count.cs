@@ -56,7 +56,7 @@ namespace taa {
                     var msg = $"Failed Parse Answer Expression: {done} <= ";
                     if (item.Last() != '|') throw new Exception(msg);
 
-                    if (int.TryParse(item.Split('|')[0], out var idx)) {
+                    if (int.TryParse(item.Split('|',StringSplitOptions.RemoveEmptyEntries)[0], out var idx)) {
                         script += $"{result[idx]}";
                     }
                     else throw new Exception(msg + " is not integer");

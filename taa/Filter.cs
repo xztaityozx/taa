@@ -26,9 +26,10 @@ namespace taa {
         public string Answer { get; }
 
 
-        public Filter(Dictionary<string, string> d, List<string> t) {
+        public Filter(Dictionary<string, string> d, List<string> t, string ans) {
             ConditionList = d;
             TargetList = t;
+            Answer = ans;
         }
 
         public void Build() {
@@ -53,7 +54,7 @@ namespace taa {
         private void ParseAnswer() {
             ParsedAnswer = new[] {"+", "-", "*", "/", "(", ")"}
                 .Aggregate(Answer, (current, ope) => current.Replace(ope, $" {ope} "))
-                .Split(' ');
+                .Split(' ',StringSplitOptions.RemoveEmptyEntries);
         }
 
         private void BuildCondition() {

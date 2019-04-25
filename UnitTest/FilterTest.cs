@@ -31,7 +31,7 @@ namespace UnitTest {
                 ["B"] = "BL[4n]<0.6",
             }, new List<string> {
                 "!(A&&B)", "A&&B"
-            });
+            }, "N-|1|-|2|");
 
             f.Build();
 
@@ -47,9 +47,10 @@ namespace UnitTest {
             Assert.Equal(4e-9M, db);
             Assert.Equal("<0.6", cb);
 
-            Assert.Equal(new[]{"not","(","A","and","B",")"}, f[0]);
-            Assert.Equal(new[]{"A","and","B"}, f[1]);
+            Assert.Equal(new[]{"not","(","A","and","B",")"}, f.Targets[0]);
+            Assert.Equal(new[]{"A","and","B"}, f.Targets[1]);
 
+            Assert.Equal(new[]{"N","-","|1|","-","|2|"}, f.ParsedAnswer);
         }
     }
 }
