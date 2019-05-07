@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using NLua;
 using System.Linq;
@@ -22,7 +23,14 @@ namespace taa {
 
         public IEnumerable<bool> GetResults() {
             var box = (LuaTable) lua["box"];
-            return Enumerable.Range(0, index).Select(i => (bool) box[i]);
+
+            var rt = new List<bool>();
+
+            for (var i = 0; i < index; i++) {
+                rt.Add((bool)box[i]);
+            }
+
+            return rt;
         }
 
         public bool this[int idx] => (bool) lua.DoString($"return box[{idx}]")[0];

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 
@@ -19,8 +20,8 @@ namespace taa {
             Name = lines[0].Trim('#');
             foreach (var s in lines.Skip(1).Where(item=>item.Length!=0)) {
                 var kv = s.Trim(' ').Split(',');
-                var key = decimal.Parse(kv[0]);
-                var value = decimal.Parse(kv[1]);
+                var key = decimal.Parse(kv[0],NumberStyles.Float);
+                var value = decimal.Parse(kv[1],NumberStyles.Float);
 
                 Values.Add(key,value);
             }

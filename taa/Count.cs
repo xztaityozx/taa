@@ -57,7 +57,7 @@ namespace taa {
                     if (item.Last() != '|') throw new Exception(msg);
 
                     if (int.TryParse(item.Split('|',StringSplitOptions.RemoveEmptyEntries)[0], out var idx)) {
-                        script += $"{result[idx]}";
+                        script += $"{result[idx - 1].Count(x=>x)}";
                     }
                     else throw new Exception(msg + " is not integer");
                 }
@@ -76,7 +76,7 @@ namespace taa {
             var rt = "";
 
             foreach (var item in input) {
-                if (new[] {"not", "and", "or", "(", ")"}.Contains(item)) rt += item;
+                if (new[] {"not", "and", "or", "(", ")"}.Contains(item)) rt += $" {item} ";
                 else {
                     var (s, d, c) = Filter[item];
                     rt += $"{signalDictionary[s][idx, d]}{c}";

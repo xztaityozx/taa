@@ -18,10 +18,9 @@ namespace taa {
         private Document GetDocument() {
 
             using (var sr = new StreamReader(this.Path)) {
-                var str = "";
-                while (sr.Peek() > 1) str += sr.ReadLine();
+                var str = sr.ReadToEnd();
 
-                var blocks = str.Split('#');
+                var blocks = str.Split("#", StringSplitOptions.RemoveEmptyEntries);
 
                 return new Document(blocks);
             }
@@ -45,9 +44,10 @@ namespace taa {
     public struct Header {
         public readonly string Format, SavedTime, Signal;
         public Header(string text) {
-            var lines = text.Split('\n');
+            var lines = text.Split("\n", StringSplitOptions.RemoveEmptyEntries);
+
             Format = lines[0].Replace("#format ", "");
-            SavedTime=lines[1].Replace("#[Custom WaveView] saved ", "");
+            SavedTime = lines[1].Replace("#[Custom WaveView] saved ", "");
             Signal = lines[2].Replace("TIME ,", "");
         }
     }
@@ -57,9 +57,9 @@ namespace taa {
         public List<TextElement> TextElements { get; }
 
         public Document(IReadOnlyList<string> blocks) {
-            this.Header=new Header(blocks[1]+blocks[2]);
+            this.Header=new Header(blocks[0] + Environment.NewLine + blocks[1]);
             this.TextElements=new List<TextElement>();
-            foreach (var item in blocks.Skip(3)) {
+            foreach (var item in blocks.Skip(2)) {
                 TextElements.Add(new TextElement(item));
             }
         }
