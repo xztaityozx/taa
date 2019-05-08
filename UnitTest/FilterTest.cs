@@ -24,33 +24,5 @@ namespace UnitTest {
             Assert.Equal(1.5e-12M, Filter.ParseDecimalWithSiUnit("1.5p"));
         }
 
-        [Fact]
-        public void BuildTest() {
-            var f = new Filter(new Dictionary<string, string> {
-                ["A"] = "BLB[4n]>0.6",
-                ["B"] = "BL[4n]<0.6",
-            }, new List<string> {
-                "!(A&&B)", "A&&B"
-            }, "N-|1|-|2|");
-
-            f.Build();
-
-            var (sa, da, ca) = f["A"];
-
-            Assert.Equal("BLB",sa);
-            Assert.Equal(4e-9M, da);
-            Assert.Equal(">0.6", ca);
-
-            var (sb, db, cb) = f["B"];
-
-            Assert.Equal("BL", sb);
-            Assert.Equal(4e-9M, db);
-            Assert.Equal("<0.6", cb);
-
-            Assert.Equal(new[]{"not","(","A","and","B",")"}, f.Targets[0]);
-            Assert.Equal(new[]{"A","and","B"}, f.Targets[1]);
-
-            Assert.Equal(new[]{"N","-","|1|","-","|2|"}, f.ParsedAnswer);
-        }
     }
 }
