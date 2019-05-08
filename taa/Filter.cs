@@ -5,7 +5,7 @@ using System.Linq;
 using YamlDotNet.Serialization;
 
 namespace taa {
-    public class Filter {
+    public class Config {
         /// <summary>
         /// 評価式のリスト
         /// </summary>
@@ -22,16 +22,13 @@ namespace taa {
         /// </summary>
         [YamlMember(Alias = "answer")]
         public string Answer { get; }
+    }
 
+    public class Filter {
+        private Config config;
 
-        public Filter(Dictionary<string, string> d, List<string> t, string ans) {
-            ConditionList = d;
-            TargetList = t;
-            Answer = ans;
-            
-        }
+        public Filter(Config config) => this.config = config;
 
         
     }
-
 }
