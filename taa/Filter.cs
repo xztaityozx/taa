@@ -28,6 +28,8 @@ namespace taa {
             ConditionList = d;
             TargetList = t;
             Answer = ans;
+            
+            Build();
         }
 
         public void Build() {

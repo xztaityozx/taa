@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -12,11 +13,6 @@ using YamlDotNet.Serialization.NamingConventions;
 namespace taa {
     internal class Program {
         private static void Main(string[] args) {
-            var csv = @"C:\Users\xztaityozx\source\repos\taa\taa\test\m8d\m8d\SEED00001.csv";
-
-            var p = new WvParser(csv);
-            var wvcsv = p.Parse();
-
             var f = new Filter(new Dictionary<string, string> {
                 ["A"] = "m8d[2.5n]>=0.4",
                 ["B"] = "m8d[10n]>=0.4",
@@ -24,22 +20,22 @@ namespace taa {
             }, new List<string> {
                 "A&&B&&C"
             }, "|1|");
-            var c = new Counter(f);
+            Func<int, long> F = (x) => {
+                var path = $"/home/xztaityozx/TestDir/m8d/SEED{x:D5}.csv";
+                var csv = new WvParser(path).Parse();
 
-            c.AddWvCSV("m8d", wvcsv);
+                var c = new Counter(f);
+                c.UpdateWvCSV("m8d", csv);
 
-            var ans = c.Aggregate();
+//                Console.Error.WriteLine($"Done: {path}");
 
+                return c.Aggregate();
+            };
+
+
+            var ans = Enumerable.Range(1, 2000).AsParallel().WithDegreeOfParallelism(20).Select(x => F(x)).Sum();
+//            var ans = F(1);
             Console.WriteLine(ans);
-
-            //            var str = @"#format 2dsweep MONTE_CARLO
-            //#[Custom WaveView] saved 11:45:40 Fri Apr 12 2019
-            //TIME ,m8d";
-            //            foreach (var s in str.Split("#")) {
-            //                Console.WriteLine(s);
-            //            }
-
         }
-
     }
 }

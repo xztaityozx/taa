@@ -21,9 +21,14 @@ namespace taa {
             signalDictionary.Add(name, csv);
         }
 
+        public void UpdateWvCSV(string name, WvCSV csv) {
+            if (signalDictionary.ContainsKey(name)) signalDictionary[name] = csv;
+            else signalDictionary.Add(name, csv);
+        }
+
         public long Aggregate() {
 
-            Filter.Build();
+//            Filter.Build();
             var len = signalDictionary.First().Value.Length;
             if (signalDictionary.Any(x => x.Value.Length != len)) throw new Exception("長さの違うCSVがあります");
 
