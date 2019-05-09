@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -13,11 +14,12 @@ using YamlDotNet.Serialization.NamingConventions;
 namespace taa {
     internal class Program {
         private static void Main(string[] args) {
-            var dir = @"C:\Users\xztaityozx\source\repos\taa\taa\test\m8d";
+            var str = "not false";
 
-            var r = WvCsvParser.Parse(dir, new[] {"N1","N2"}, 9, 5000);
+            var dt = new DataTable();
 
-            Console.WriteLine(r);
+            Console.WriteLine((bool)dt.Compute(str,""));
         }
+
     }
 }

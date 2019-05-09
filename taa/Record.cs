@@ -6,27 +6,25 @@ namespace taa {
     public class Record {
         public IEnumerable<string> SignalList { get; }
         // dataMap[index, signalName, time] = value
-        private List<Map<string, Map<decimal, double>>> dataMap;
+        private List<Map<string, Map<decimal, decimal>>> dataMap;
 
         public Record(IEnumerable<string> signals, int cnt) {
             SignalList = new List<string>(signals);
-            dataMap = new List<Map<string, Map<decimal, double>>>();
+            dataMap = new List<Map<string, Map<decimal, decimal>>>();
 
             for (var i = 0; i < cnt; i++) {
-                dataMap.Add(new Map<string, Map<decimal, double>>());
+                dataMap.Add(new Map<string, Map<decimal, decimal>>());
 
                 // 信号のMap追加
                 foreach (var signal in signals) {
-                    dataMap[i][signal] = new Map<decimal, double>();
+                    dataMap[i][signal] = new Map<decimal, decimal>();
                 }
             }
         }
 
-        public double this[int index, string signal, decimal time] {
+        public decimal this[int index, string signal, decimal time] {
             get => dataMap[index][signal][time];
-            set {
-                dataMap[index][signal][time] = value;
-            }
+            set => dataMap[index][signal][time] = value;
         }
 
         public override string ToString() {

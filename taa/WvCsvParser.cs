@@ -18,21 +18,24 @@ namespace taa {
                 NumberStyles.Float);
         }
 
-        public static Record Parse(string dir, IReadOnlyCollection<string> signals, int seeds, int times) {
+        public static Record Parse(string dir, IReadOnlyCollection<string> signals, int seeds, int times, int parallel) {
             var rt = new Record(signals, seeds*times);
-            var para = signals.Count();
+            
+            var list = new List<Tuple<int,string,string>>();
+
             for (var i = 1; i <= seeds; i++) {
-                signals.AsParallel()
-                    .WithDegreeOfParallelism(para)
-                    .ForAll(s => {
-                        foreach (var element in GetElements(Path.Join(dir, s, $"SEED{i:D5}.csv"))) {
-                            var idx = element.Index - 1 + times*(i-1);
-                            foreach (var (k, v) in element.List) {
-                                rt[idx, s, k] = v;
-                            }
-                        }
-                    });
+                list.AddRange(signals
+                    .Select(signal =>Tuple.Create(i, signal, Path.Join(dir, signal, $"SEED{i:D5}.csv"))));
             }
+
+            list.AsParallel().WithDegreeOfParallelism(parallel).ForAll(s => {
+                foreach (var element in GetElements(s.Item3)) {
+                    var idx = element.Index - 1 + times * (s.Item1 - 1);
+                        foreach (var (k, v) in element.List) {
+                            rt[idx, s.Item2, k] = v;
+                        }
+                }
+            });
 
             return rt;
         }
@@ -50,10 +53,10 @@ namespace taa {
         }
 
         public class Element {
-            private readonly Map<decimal, double> valueMap;
+            private readonly Map<decimal, decimal> valueMap;
 
             public Element(string str) {
-                valueMap=new Map<decimal, double>();
+                valueMap=new Map<decimal, decimal>();
 
                 // str format
                 // #sweep index
@@ -69,7 +72,7 @@ namespace taa {
                     var l = s.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
                     return new {
                         k = decimal.Parse(l[0], NumberStyles.Float),
-                        v = double.Parse(l[1], NumberStyles.Float)
+                        v = decimal.Parse(l[1], NumberStyles.Float)
                     };
                 })) {
                     valueMap[item.k] = item.v;
@@ -79,7 +82,7 @@ namespace taa {
 
             public int Index { get; }
 
-            public IEnumerable<Tuple<decimal, double>> List =>
+            public IEnumerable<Tuple<decimal, decimal>> List =>
                 valueMap.Select(item => Tuple.Create(item.Key, item.Value));
         }
     }
