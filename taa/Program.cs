@@ -7,6 +7,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Mime;
+using DynamicExpresso;
 using NLua;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
@@ -14,11 +15,15 @@ using YamlDotNet.Serialization.NamingConventions;
 namespace taa {
     internal class Program {
         private static void Main(string[] args) {
-            var str = "not false";
+            //const string dir = @"C:\Users\xztaityozx\source\repos\taa\taa\test\m8d";
+            //var signals = new[] {"m8d"};
 
-            var dt = new DataTable();
+            //var sw = new Stopwatch();
+            //sw.Start();
 
-            Console.WriteLine((bool)dt.Compute(str,""));
+            //var r = WvCsvParser.Parse(dir, signals, 2000, 5000, 20);
+
+            //Console.WriteLine($"Record.Size: {r.Size}, WcCsvParser.Parse: {sw.ElapsedMilliseconds}ms");
         }
 
     }
