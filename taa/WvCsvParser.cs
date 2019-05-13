@@ -19,68 +19,85 @@ namespace taa {
         }
 
         public static Record Parse(string dir, IReadOnlyCollection<string> signals, int seeds, int times) {
-            var rt = new Record(signals, seeds*times);
-            var para = signals.Count();
-            for (var i = 1; i <= seeds; i++) {
-                signals.AsParallel()
-                    .WithDegreeOfParallelism(para)
-                    .ForAll(s => {
-                        foreach (var element in GetElements(Path.Join(dir, s, $"SEED{i:D5}.csv"))) {
-                            var idx = element.Index - 1 + times*(i-1);
-                            foreach (var (k, v) in element.List) {
-                                rt[idx, s, k] = v;
-                            }
-                        }
-                    });
+            var fileList = signals.SelectMany(signal =>
+                Enumerable.Range(1, seeds).Select(seed => Tuple.Create(seed, Path.Join(dir, signal, $"SEED{seed:D5}.csv"))));
+            var res = fileList.AsParallel().WithDegreeOfParallelism(signals.Count)
+                .Select(t => new Document(t.Item2, t.Item1)).ToList();
+
+            var rt = new Record(seeds,times);
+            
+            foreach (var document in res) {
+                var index = 0;
+                var timeSet = document.TimeSet;
+                var seed = document.Seed;
+                var size = document.Size;
+                var signal = document.Name;
+                foreach (var values in document.Data) {
+                    for (var i = 0; i < timeSet.Length; i++) {
+                        var time = timeSet[i];
+                        var value = values[i];
+
+                        rt[index + (seed - 1) * size, signal, time] = value;
+//                        Console.WriteLine($"{index+(seed-1)*size}: index:{index}, seed:{seed}, size:{size}");
+                    } 
+                    index++;
+                }
             }
 
             return rt;
         }
 
-        private static IEnumerable<Element> GetElements(string file) {
-            var elements = new List<Element>();
-            using (var sr = new StreamReader(file)) {
-                var str = sr.ReadToEnd();
-                elements.AddRange(str
-                    .Split("#", StringSplitOptions.RemoveEmptyEntries)
-                    .Skip(2).Select(item => new Element(item)));
-            }
+        public class Document {
+            public decimal[] TimeSet { get; }
+            public IEnumerable<decimal[]> Data { get; }
+            public int Seed { get; }
+            public string Name { get; }
 
-            return elements;
-        }
+            public int Size => Data.Count();
 
-        public class Element {
-            private readonly Map<decimal, double> valueMap;
+            private readonly char[] delimiter = {' ', ','};
 
-            public Element(string str) {
-                valueMap=new Map<decimal, double>();
+            public Document(string path, int seed) {
+                Seed = seed;
 
-                // str format
-                // #sweep index
-                // key1, value1
-                // key2, value2
-                // ...
-                var delimiter = new[] { ',', ' ' };
-
-                var lines = str.Split("\n",StringSplitOptions.RemoveEmptyEntries);
-                Index = int.Parse(lines[0].Split(delimiter)[1]);
-
-                foreach (var item in lines.Skip(1).Select(s => {
-                    var l = s.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
-                    return new {
-                        k = decimal.Parse(l[0], NumberStyles.Float),
-                        v = double.Parse(l[1], NumberStyles.Float)
-                    };
-                })) {
-                    valueMap[item.k] = item.v;
+                var sb = new StringBuilder();
+                using (var sr = new StreamReader(path)) {
+                    while(sr.Peek()>0) sb.AppendLine(sr.ReadLine());
                 }
 
+                var doc = sb.ToString().Split('#',StringSplitOptions.RemoveEmptyEntries);
+                Name = doc[1].Split('\n')[1].Replace("TIME ,", "").Trim(' ');
+
+                var res = doc.Skip(2)
+                    .Select(s => s.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                    .Select(ParseElement)
+                    .ToList();
+
+                TimeSet = res[0].Item2.ToArray();
+                Data = res.OrderBy(e => e.Item1).Select(e => e.Item3.ToArray());
             }
 
-            public int Index { get; }
+            /// <summary>
+            /// Tuple => Time, Data
+            /// </summary>
+            /// <param name="element"></param>
+            /// <returns></returns>
+            public Tuple<int, IEnumerable<decimal>, IEnumerable<decimal>> ParseElement(string[] element) {
+                var timeSet = new SortedSet<decimal>();
+                var dataList = new List<decimal>();
+                var index = int.Parse(element[0].Replace("sweep ", ""));
 
-            public IEnumerable<Tuple<decimal, double>> List =>
-                valueMap.Select(item => Tuple.Create(item.Key, item.Value));
+                foreach (var line in element.Skip(1).Select(l => l.Split(delimiter,StringSplitOptions.RemoveEmptyEntries))) {
+                    var time = decimal.Parse(line[0],NumberStyles.Float);
+                    var value = decimal.Parse(line[1],NumberStyles.Float);
+
+                    timeSet.Add(time);
+                    dataList.Add(value);
+                }
+
+                return new Tuple<int,IEnumerable<decimal>, IEnumerable<decimal>>(index,timeSet, dataList);
+            }
         }
+
     }
 }

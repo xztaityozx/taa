@@ -27,7 +27,6 @@ namespace taa {
     public class Filter {
         private Config config;
 
-        public Filter(Config config) => this.config = config;
 
         
     }
