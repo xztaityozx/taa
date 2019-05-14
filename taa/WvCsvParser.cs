@@ -47,7 +47,7 @@ namespace taa {
             return rt;
         }
 
-        public class Document {
+        private class Document {
             public decimal[] TimeSet { get; }
             public IEnumerable<decimal[]> Data { get; }
             public int Seed { get; }
