@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,13 +11,13 @@ namespace taa {
         private readonly Map<string, int> signalIndexMap = new Map<string, int>();
         private readonly List<decimal[]> dataList = new List<decimal[]>();
 
-        public Record(int seeds, int times, IEnumerable<string> signals, IReadOnlyList<decimal> timeSet) {
+        public Record(int seeds, int times, IEnumerable<Tuple<string,IEnumerable<decimal>>> keyList) {
             var index = 0;
-            foreach (var signal in signals) {
-                foreach (var time in timeSet) {
-                    var k = GenKeyString(signal, time);
-                    signalIndexMap[k] = index;
-                    index++;
+            foreach (var (signal, timeSet) in keyList) {
+                    foreach (var time in timeSet) {
+                        var k = GenKeyString(signal, time);
+                        signalIndexMap[k] = index;
+                        index++;
                 }
             }
 
@@ -44,6 +45,14 @@ namespace taa {
 
         IEnumerator IEnumerable.GetEnumerator() {
             return GetEnumerator();
+        }
+
+        public override string ToString() {
+            var sb = new StringBuilder();
+
+            sb.AppendLine($"Index, {string.Join(", ", signalIndexMap.Keys)}");
+
+            return sb.ToString();
         }
     }
 }

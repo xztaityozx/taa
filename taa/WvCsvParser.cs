@@ -18,25 +18,53 @@ namespace taa {
                 NumberStyles.Float);
         }
 
-        //public static Record Parse(string dir, IReadOnlyCollection<string> signals, int seeds, int times, int parallel) {
-            
+        public Record Parse(string dir, IReadOnlyCollection<string> signals, int seeds, int times) {
+            var res = signals
+                .SelectMany(sig => Enumerable.Range(1, seeds)
+                    .Select(seed => Tuple.Create(seed,Path.Join(dir, sig, $"SEED{seed:D5}.csv"))))
+                .AsParallel().WithDegreeOfParallelism(signals.Count)
+                .Select(f => new Document(f.Item2,f.Item1))
+                .ToList();
 
-        //}
+            var keyList = res.Select(d => Tuple.Create(d.Name, d.TimeSet));
+            var rt = new Record(seeds,times,keyList);
 
+            foreach (var document in res) {
+                var idx = 0;
+                var timeSet = document.TimeSet.ToArray();
+                var sig = document.Name;
+                foreach (var values in document.Values) {
+                    for (var i = 0; i < values.Length; i++) {
+                        rt[times * seeds + idx, sig, timeSet[i]] = values[i];
+                    }
 
-        private readonly string[] elementDelimiter = {",", " "};
-        private Tuple<IEnumerable<string>, IEnumerable<decimal[]>> GetElements(string file) {
-            using (var sr = new StreamReader(file)) {
-                var str = sr.ReadToEnd();
-                var split = str.Split(elementDelimiter, StringSplitOptions.RemoveEmptyEntries);
+                    idx++;
+                }
+            }
 
-                var signalName = split[1].Split('\n', StringSplitOptions.RemoveEmptyEntries)[1].Replace("Time ,", "");
-                var elements = split.Skip(2).Select(ParseElement).ToArray();
+            return rt;
+        }
 
-                var keyList = elements.First().Item2.Select(time => Record.GenKeyString(signalName, time));
-                var valuesList = elements.Select(t => t.Item3.ToArray());
+        public class Document {
+            public IEnumerable<decimal> TimeSet { get; }
+            public IEnumerable<decimal[]> Values { get; }
 
-                return Tuple.Create(keyList, valuesList);
+            public string Name { get; }
+            public int Seed { get; }
+            private readonly string[] elementDelimiter = { ",", " " };
+
+            public Document(string file, int seed) {
+                Seed = seed;
+                using (var sr = new StreamReader(file)) {
+                    var str = sr.ReadToEnd();
+                    var split = str.Split(elementDelimiter, StringSplitOptions.RemoveEmptyEntries);
+                    Name = split[1].Split('\n')[0].Replace("TIME ,", "");
+
+                    var elements = split.Skip(2).Select(ParseElement).ToArray();
+
+                    TimeSet = elements.First().Item2;
+                    Values = elements.Select(t => t.Item3.ToArray());
+                }
             }
         }
 
