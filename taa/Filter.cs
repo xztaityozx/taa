@@ -6,7 +6,7 @@ using DynamicExpresso;
 using YamlDotNet.Serialization;
 
 namespace taa {
-    public struct Config {
+    public class Config {
         /// <summary>
         /// 評価式のリスト
         /// </summary>
@@ -16,19 +16,32 @@ namespace taa {
         /// <summary>
         /// 数え上げ対象の評価式のリスト
         /// </summary>
-        [YamlMember(Alias = "targets")]
-        public List<string> TargetList { get; }
+        [YamlMember(Alias = "expressions")]
+        public List<string> ExpressionList { get; }
+
+        public Config() {
+            ConditionList=new Dictionary<string, string>();
+            ExpressionList=new List<string>();
+        }
+        public void AddCondition(string key, string value) => ConditionList.Add(key, value);
+        public void AddExpression(string target) => ExpressionList.Add(target);
     }
 
     public class Filter {
-        private Config config;
+        private readonly Config config;
         private readonly char[] delimiter = {'[', ']'};
 
         public Filter(Config c) => config = c;
 
-        public IEnumerable<Func<Map<string, decimal>, bool>> Build() {
+        public List<Func<Map<string, decimal>, bool>> Build() {
 
-            var conditionMap = new Map<string, string>();
+            var conditionMap = new Map<string, string> {
+                ["&&"] = "&&",
+                ["||"] = "||",
+                ["!"] = "!",
+                ["("] = "(",
+                [")"] = ")"
+            };
             foreach (var (key,value) in config.ConditionList) {
                 var split = value.Trim(' ').Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
                 
@@ -36,27 +49,31 @@ namespace taa {
                 
                 var sig = split[0];
                 var time = WvCsvParser.ParseDecimalWithSiUnit(split[1]);
-                
-                conditionMap[key] = $"map[\"{Record.GetKey(sig, time)}\"]{split[2]}";
+                var ope = split[2][1] == '=' ? split[2].Substring(0, 2) : $"{split[2][0]}";
+                var x = WvCsvParser.ParseDecimalWithSiUnit(split[2].Substring(ope.Length,
+                    split[2].Length - ope.Length));
+
+
+                conditionMap[key] = $"map[\"{Record.GetKey(sig, time)}\"]{ope}{x}M";
+
+                Console.WriteLine(conditionMap[key]);
             }
             
             var itr = new Interpreter();
 
-            var rt = config.TargetList.Select(item => {
-                return string.Join("", item
+            var rt = config
+                .ExpressionList
+                .Select(item => string.Join("", item
                     .Replace("&&", " && ")
                     .Replace("||", " || ")
                     .Replace("(", " ( ")
                     .Replace(")", " ) ")
                     .Replace("!", " ! ")
                     .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                    .Select(s =>
-                        s == "&&" || s == "||" || s == "!" || s == "(" || s == ")" ? s : $"({conditionMap[s]})"));
-            }).Select(exp => itr.ParseAsDelegate<Func<Map<string, decimal>, bool>>(exp));
-                
-            
+                    .Select(s => conditionMap[s]))
+            ).Select(exp => itr.ParseAsDelegate<Func<Map<string, decimal>, bool>>(exp, "map"));
 
-            return rt;
+            return rt.ToList();
         }
 
     }

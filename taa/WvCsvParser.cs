@@ -18,10 +18,12 @@ namespace taa {
                 NumberStyles.Float);
         }
 
-        public static Record Parse(string dir, IReadOnlyCollection<string> signals, int seeds, int times) {
+        // TODO: 遅すぎて使いもんにならん
+        public static Record Parse(string dir, IReadOnlyCollection<string> signals, int seeds, int times, int parallel) {
             var fileList = signals.SelectMany(signal =>
                 Enumerable.Range(1, seeds).Select(seed => Tuple.Create(seed, Path.Join(dir, signal, $"SEED{seed:D5}.csv"))));
-            var res = fileList.AsParallel().WithDegreeOfParallelism(signals.Count)
+
+            var res = fileList.AsParallel().WithDegreeOfParallelism(parallel)
                 .Select(t => new Document(t.Item2, t.Item1)).ToList();
 
             var rt = new Record(seeds,times);
@@ -38,7 +40,6 @@ namespace taa {
                         var value = values[i];
 
                         rt[index + (seed - 1) * size, signal, time] = value;
-//                        Console.WriteLine($"{index+(seed-1)*size}: index:{index}, seed:{seed}, size:{size}");
                     } 
                     index++;
                 }
@@ -65,8 +66,10 @@ namespace taa {
                     while(sr.Peek()>0) sb.AppendLine(sr.ReadLine());
                 }
 
-                var doc = sb.ToString().Split('#',StringSplitOptions.RemoveEmptyEntries);
-                Name = doc[1].Split('\n')[1].Replace("TIME ,", "").Trim(' ');
+                var doc = sb.ToString()
+                    .Replace("\r","")
+                    .Split('#',StringSplitOptions.RemoveEmptyEntries);
+                Name = doc[1].Split('\n')[1].Replace("TIME ,", "").Replace(" ","");
 
                 var res = doc.Skip(2)
                     .Select(s => s.Split('\n', StringSplitOptions.RemoveEmptyEntries))
@@ -82,7 +85,7 @@ namespace taa {
             /// </summary>
             /// <param name="element"></param>
             /// <returns></returns>
-            public Tuple<int, IEnumerable<decimal>, IEnumerable<decimal>> ParseElement(string[] element) {
+            private Tuple<int, IEnumerable<decimal>, IEnumerable<decimal>> ParseElement(string[] element) {
                 var timeSet = new SortedSet<decimal>();
                 var dataList = new List<decimal>();
                 var index = int.Parse(element[0].Replace("sweep ", ""));
