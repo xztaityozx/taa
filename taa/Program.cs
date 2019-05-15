@@ -1,44 +1,64 @@
 ﻿using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Mime;
+using System.Threading;
+using System.Threading.Tasks;
 using DynamicExpresso;
 using NLua;
+using ShellProgressBar;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
 namespace taa {
     internal class Program {
         private static void Main(string[] args) {
-            var dir = @"C:\Users\xztaityozx\source\repos\taa\taa\test\m8d";
+            //var dir = @"C:\Users\xztaityozx\source\repos\taa\taa\test\m8d";
 
-            var sw = new Stopwatch();
-            sw.Start();
-            var r = WvCsvParser.Parse(dir, new[] { "m8d" }, 100, 5000, 10);
-            sw.PrintElapsedMilliseconds("Finished: WvCsvParser.Parse(): ");
-            sw.Restart();
+            //var config = new Config(10, new[] {"m8d"}, 5000, 100);
+            //config.AddCondition("A", "m8d[2.5n]>=0.4");
+            //config.AddCondition("B", "m8d[10n]>=0.4");
+            //config.AddCondition("C", "m8d[17.5n]>=0.4");
 
-            var config = new Config();
-            config.AddCondition("A", "m8d[2.5n]>=0.4");
-            config.AddCondition("B", "m8d[10n]>=0.4");
-            config.AddCondition("C", "m8d[17.5n]>=0.4");
+            //config.AddExpression("A&&B&&C");
+            //config.AddExpression("A&&B&&C");
+            //config.AddExpression("A&&B&&C");
+            //config.AddExpression("A&&B&&C");
+            //config.AddExpression("A&&B&&C");
 
-            //config.AddCondition("D", "N2[2.5n]>=0.4");
-            //config.AddCondition("E", "N2[10n]>=0.4");
-            //config.AddCondition("F", "N2[17.5n]>=0.4");
+            //var cts =new CancellationTokenSource();
+            //Console.CancelKeyPress += (s, e) => {
+            //    e.Cancel = true;
+            //    cts.Cancel();
+            //};
 
-            config.AddExpression("A&&B&&C");
+            //var d = new Dispatcher(config);
 
-            var f = new Filter(config);
-            var fs = f.Build();
-            sw.PrintElapsedMilliseconds("Finished: filter.Build(): ");
-            sw.Restart();
-            r.Count(fs[0]).WL();
-            sw.PrintElapsedMilliseconds("Finished: Record.Count(fs[0]).WL(): ");
+
+            using (var q = new BlockingCollection<int>()) {
+
+                var dispatcher = Task.Run(() => {
+                    Enumerable.Range(0, 10).AsParallel()
+                        .WithDegreeOfParallelism(10)
+                        .ForAll(i => q.TryAdd(i, Timeout.Infinite));
+
+                    q.CompleteAdding();
+                });
+
+                void Worker() {
+                    foreach (var i in q.GetConsumingEnumerable()) {
+                        Console.WriteLine(i);
+                    }
+                }
+
+                Task.WaitAll(dispatcher, Task.Run((Action) Worker), Task.Run((Action) Worker));
+
+            }
 
             return;
         }
@@ -55,5 +75,8 @@ namespace taa {
 
         public static void PrintElapsedMilliseconds(this Stopwatch @this, string prefix="") 
             => Console.WriteLine($"{prefix}{@this.ElapsedMilliseconds}ms");
+
+        public static void PrintFinish(this Stopwatch @this, string message)
+            => @this.PrintElapsedMilliseconds($"Finished: {message}");
     }
 }
