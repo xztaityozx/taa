@@ -34,12 +34,6 @@ namespace taa {
             }
         }
 
-        public long Aggregate(Func<Map<string, decimal>, bool> filter) => this.Count(filter);
-
-        public decimal this[int index, string signal, decimal time] {
-            set => dataMap[index][GetKey(signal, time)] = value;
-        }
-
         public static string GetKey(string signal, decimal time) => $"{signal}-{time:E10}";
 
         public IEnumerator<Map<string, decimal>> GetEnumerator() {
