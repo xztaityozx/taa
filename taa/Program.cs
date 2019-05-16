@@ -18,47 +18,32 @@ using YamlDotNet.Serialization.NamingConventions;
 namespace taa {
     internal class Program {
         private static void Main(string[] args) {
-            //var dir = @"C:\Users\xztaityozx\source\repos\taa\taa\test\m8d";
+            var dir = @"/home/xztaityozx/TestDir";
+//            var dir = @"C:\Users\xztaityozx\source\repos\taa\taa\test\m8d";
 
-            //var config = new Config(10, new[] {"m8d"}, 5000, 100);
-            //config.AddCondition("A", "m8d[2.5n]>=0.4");
-            //config.AddCondition("B", "m8d[10n]>=0.4");
-            //config.AddCondition("C", "m8d[17.5n]>=0.4");
+            var config = new Config(10, new[] {"m8d"}, 5000, 2000);
+            config.AddCondition("A", "m8d[2.5n]>=0.4");
+            config.AddCondition("B", "m8d[10n]>=0.4");
+            config.AddCondition("C", "m8d[17.5n]>=0.4");
 
-            //config.AddExpression("A&&B&&C");
-            //config.AddExpression("A&&B&&C");
-            //config.AddExpression("A&&B&&C");
-            //config.AddExpression("A&&B&&C");
-            //config.AddExpression("A&&B&&C");
+            config.AddExpression("A&&B&&C");
+            config.AddExpression("A&&B&&C");
+            config.AddExpression("A&&B&&C");
+            config.AddExpression("A&&B&&C");
+            config.AddExpression("A&&B&&C");
 
-            //var cts =new CancellationTokenSource();
-            //Console.CancelKeyPress += (s, e) => {
-            //    e.Cancel = true;
-            //    cts.Cancel();
-            //};
+            var cts =new CancellationTokenSource();
+            Console.CancelKeyPress += (s, e) => {
+                e.Cancel = true;
+                cts.Cancel();
+            };
 
-            //var d = new Dispatcher(config);
+            var d = new Dispatcher(config);
 
+            var res = d.Start(cts.Token, dir);
 
-            using (var q = new BlockingCollection<int>()) {
+            res.WL();
 
-                var dispatcher = Task.Run(() => {
-                    Enumerable.Range(0, 10).AsParallel()
-                        .WithDegreeOfParallelism(10)
-                        .ForAll(i => q.TryAdd(i, Timeout.Infinite));
-
-                    q.CompleteAdding();
-                });
-
-                void Worker() {
-                    foreach (var i in q.GetConsumingEnumerable()) {
-                        Console.WriteLine(i);
-                    }
-                }
-
-                Task.WaitAll(dispatcher, Task.Run((Action) Worker), Task.Run((Action) Worker));
-
-            }
 
             return;
         }

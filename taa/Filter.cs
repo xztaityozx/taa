@@ -82,9 +82,9 @@ namespace taa {
                     var split = value.Trim(' ').Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
 
                     var sig = split[0];
-                    var time = Aggregator.ParseDecimalWithSiUnit(split[1]);
+                    var time = Record.ParseDecimalWithSiUnit(split[1]);
                     var ope = split[2][1] == '=' ? split[2].Substring(0, 2) : $"{split[2][0]}";
-                    var x = Aggregator.ParseDecimalWithSiUnit(split[2].Substring(ope.Length,
+                    var x = Record.ParseDecimalWithSiUnit(split[2].Substring(ope.Length,
                         split[2].Length - ope.Length));
 
 
