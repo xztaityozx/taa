@@ -60,14 +60,16 @@ namespace taa {
 
                 var tasks = new List<Task>();
                 using (var mpb = new MultiProgressBar(pb, "Aggregate")) 
-                using (var q = new BlockingCollection<Record>()) {
+                using (var q = new BlockingCollection<Document>()) {
                     var dispatcher = Task.Run(() => {
-                        using (var cpb = pb.Spawn(config.Range, "Generate Record", childOption)) {
-                            Enumerable.Range(1,config.Range).AsParallel()
+                        using (var cpb = pb.Spawn(config.Sweep, "Generate Record", childOption)) {
+                            Enumerable.Range(1,config.Sweep).AsParallel()
                                 .WithDegreeOfParallelism(config.Parallel)
                                 .WithCancellation(token)
                                 .ForAll(seed => {
-                                    q.TryAdd(new Record(dir, config.Signals, config.Times, seed));
+                                    // Record を作成
+                                    var path = Path.Combine(dir, $"SEED{seed:D5}.csv");
+                                    q.TryAdd(new Document(path, config.Times, seed));
                                     cpb.Tick();
                                 });
                             q.CompleteAdding();
@@ -77,7 +79,7 @@ namespace taa {
                     tasks.Add(dispatcher);
 
                     for (var i = 0; i < expressionCount; i++) {
-                        mpb.AddBar(config.Range, config.ExpressionList[i]);
+                        mpb.AddBar(config.Sweep, config.ExpressionList[i]);
                     }
 
                     var worker = Task.Run(() => {
@@ -105,7 +107,7 @@ namespace taa {
             return result.Zip(config.ExpressionList, (l, s) => Tuple.Create(s, l)).ToArray();
         }
 
-        public class MultiProgressBar : IDisposable {
+        private class MultiProgressBar : IDisposable {
             private readonly ChildProgressBar parent;
             private readonly List<ChildProgressBar> list;
 
