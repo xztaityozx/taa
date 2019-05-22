@@ -24,7 +24,7 @@ namespace taa {
         public void PushMany(IEnumerable<Record> records) {
             var collection = db.GetCollection<Record>(config.Collection);
 
-            var requests = records.Select(record => new UpdateOneModel<Record>(record.Filter, record.Update)).ToList();
+            var requests = records.Select(record => new UpdateOneModel<Record>(record.Filter, record.Update){IsUpsert = true}).ToList();
             collection.BulkWrite(requests);
         }
 
