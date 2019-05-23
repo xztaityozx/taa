@@ -8,10 +8,44 @@ using System.Reflection.Metadata;
 using System.Text;
 
 namespace taa {
+    public class DocumentFactory {
+        public static Document[] Build(IEnumerable<Record> record, int sweeps) {
+            var collection = record.ToArray();
+
+            var signals = collection.Select(r => r.Signal).Distinct().ToArray();
+            var seeds = collection.Select(r => r.Seed).Distinct().ToArray();
+            var map = new Map<int, Document>();
+
+            foreach (var seed in seeds) {
+                map[seed]=new Document(sweeps);
+            }
+
+            foreach (var item in collection) {
+                map[item.Seed].AppendRange(item.Signal, item.Time, item.Values);
+            }
+
+            return map.OrderBy(d => d.Key).Select(d => d.Value).ToArray();
+        }
+    }
+
     public class Document : IEnumerable<Map<string, decimal>> {
         private readonly List<Map<string, decimal>> dataMap;
         public int Seed { get; }
         private readonly char[] delimiter = {' ', ','};
+
+
+        public void AppendRange(string signal, decimal time, decimal[] values) {
+            for (var i = 0; i < values.Length; i++) {
+                dataMap[i][GetKey(signal, time)] = values[i];
+            }
+        }
+
+        public Document(int sweeps) {
+            dataMap=new List<Map<string, decimal>>();
+            for (var i = 0; i < sweeps; i++) {
+                dataMap.Add(new Map<string, decimal>());
+            }
+        }
 
         public Document(string file, int times, int seed) {
             dataMap = new List<Map<string, decimal>>();
@@ -68,6 +102,14 @@ namespace taa {
                     .Replace("n", "E-09")
                     .Replace("p", "E-12"),
                 NumberStyles.Float);
+        }
+
+        public override string ToString() {
+            var sb = new StringBuilder();
+
+            sb.AppendLine($"key: {dataMap.Select(r => r.Keys)}");
+
+            return sb.ToString();
         }
     }
 }

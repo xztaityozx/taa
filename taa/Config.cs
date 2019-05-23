@@ -63,5 +63,12 @@ namespace taa {
         public override string ToString() {
             return $"mongodb://{Host}:{Port}";
         }
+
+        public DatabaseConfig(string host, int port, string name, string collection) {
+            Host = host;
+            Port = port;
+            Name = name;
+            Collection = collection;
+        }
     }
 }
