@@ -55,6 +55,12 @@ namespace taa {
         public decimal Sigma { get; set; }
         public decimal Deviation { get; set; }
 
+        public Transistor(double v, double s, double d) {
+            Voltage = (decimal)v;
+            Sigma = (decimal)s;
+            Deviation = (decimal) d;
+        }
+
         public bool Equal(decimal v, decimal s, decimal d) => v == Voltage && s == Sigma && d == Deviation;
     }
 
@@ -101,6 +107,7 @@ namespace taa {
             Sweeps = values.Count();
         }
 
+        
         public FilterDefinition<Record> Filter =>
             Builders<Record>.Filter.Where(r =>
                 r.Signal == Signal &&

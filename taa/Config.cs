@@ -26,7 +26,7 @@ namespace taa {
 
         [YamlMember(Alias = "sweeps")] public int Sweep { get; }
 
-        [YamlMember(Alias = "database")] public DatabaseConfig DatabaseConfig { get; }
+        [YamlMember(Alias = "database")] public DatabaseConfig DatabaseConfig { get; private set; }
 
         public Config(int p, int time, int sweep) {
             ConditionList = new Dictionary<string, string>();
@@ -39,7 +39,7 @@ namespace taa {
         public void AddCondition(string key, string value) => ConditionList.Add(key, value);
         public void AddExpression(string target) => ExpressionList.Add(target);
 
-        public Config Deserialize(string path) {
+        public static Config Deserialize(string path) {
             string str;
             using (var sr = new StreamReader(path)) {
                 str = sr.ReadToEnd();
@@ -48,17 +48,27 @@ namespace taa {
             var d = new Deserializer();
             return d.Deserialize<Config>(str);
         }
+
+        public void SetOrDefault(string host, int port, string name, string colName) {
+            if (DatabaseConfig==null ) DatabaseConfig = new DatabaseConfig(host, port, name, colName);
+            else {
+                if (host != "localhost") DatabaseConfig.Host = host;
+                if (port != 27017) DatabaseConfig.Port = port;
+                if (name != "results") DatabaseConfig.Name = name;
+                if (colName != "records") DatabaseConfig.Collection = colName;
+            }
+        }
     }
 
     public class DatabaseConfig {
         [YamlMember]
-        public string Host { get; }
+        public string Host { get; set; }
         [YamlMember]
-        public int Port { get; }
+        public int Port { get; set; }
         [YamlMember]
-        public string Name { get; }
+        public string Name { get; set; }
         [YamlMember]
-        public string Collection { get; }
+        public string Collection { get; set; }
 
         public override string ToString() {
             return $"mongodb://{Host}:{Port}";

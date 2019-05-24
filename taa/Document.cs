@@ -84,7 +84,12 @@ namespace taa {
             }
         }
 
-        public static string GetKey(string signal, decimal time) => $"{signal}-{time:E10}";
+        public static string GetKey(string signal, decimal time) => $"{signal}/{time:E10}";
+
+        public static Tuple<string, decimal> DecodeKey(string key) {
+            var split = key.Split("/", StringSplitOptions.RemoveEmptyEntries);
+            return Tuple.Create(split[0], decimal.Parse(split[1], NumberStyles.Float));
+        }
 
         public IEnumerator<Map<string, decimal>> GetEnumerator() {
             return dataMap.GetEnumerator();
