@@ -24,10 +24,7 @@ namespace taa {
     internal class Program {
         private static void Main(string[] args) {
             Parser.Default.ParseArguments<Push>(args).MapResult(
-                (Push opt) => { 
-                    Console.WriteLine(opt);
-                    return 0;
-                },
+                (Push opt) => opt.Run(),
              err => 1);
         }
 
