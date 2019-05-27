@@ -38,13 +38,21 @@ namespace taa {
         
         public Record[] Pull(Transistor vtn, Transistor vtp, IEnumerable<Tuple<string, decimal>> targets, int sweeps) {
             var col = db.GetCollection<Record>(config.Collection);
-            var tasks = new List<Task<IAsyncCursor<Record>>>();
+            //var tasks = new List<Task<IAsyncCursor<Record>>>();
+            //foreach (var (signal, time) in targets) {
+            //    tasks.Add(col.FindAsync(Record.FindFilter(vtn, vtp, signal, time, sweeps)));
+            //}
+
+            //var records = Task.WhenAll(tasks).Result.SelectMany(c => c.ToList());
+
+            // TODO: r.Timeとtimeの比較がうまくできてない。意味不明マジで
+            var records = new List<Record>();
+
             foreach (var (signal, time) in targets) {
-                tasks.Add(col.FindAsync(Record.FindFilter(vtn, vtp, signal, time, sweeps)));
+                records.AddRange(col.Find(r=>
+                    r.VtnDeviation==vtn.Deviation
+                    ).ToList());
             }
-
-            var records = Task.WhenAll(tasks).Result.SelectMany(c => c.ToList());
-
 
             return records.ToArray();
         }
@@ -61,7 +69,6 @@ namespace taa {
             Deviation = (decimal) d;
         }
 
-        public bool Equal(decimal v, decimal s, decimal d) => v == Voltage && s == Sigma && d == Deviation;
     }
 
     public class Record {
@@ -127,11 +134,18 @@ namespace taa {
 
         public static FilterDefinition<Record> FindFilter(Transistor vtn, Transistor vtp, string signal, decimal time,
             int sweeps)
-            => Builders<Record>.Filter.Where(r =>
-                r.Signal == signal && r.Time == time && r.Sweeps == sweeps &&
-                vtn.Equal(r.VtnVoltage, r.VtnSigma, r.VtnDeviation) &&
-                vtp.Equal(r.VtpVoltage, r.VtpSigma, r.VtpDeviation)
-            );
+            => Builders<Record>.Filter
+                .Where(r =>
+                    r.Signal == signal &&
+                    r.Time == time &&
+                    r.Sweeps == sweeps &&
+                    vtn.Voltage == r.VtnVoltage &&
+                    vtn.Sigma == r.VtnSigma &&
+                    vtn.Deviation == r.VtnDeviation &&
+                    vtp.Voltage == r.VtpVoltage &&
+                    vtp.Sigma == r.VtpSigma &&
+                    vtp.Deviation == r.VtpDeviation
+                );
 
         public override string ToString() {
             return

@@ -28,9 +28,10 @@ namespace taa {
 
             var response = repo.Pull(vtn, vtp, Request.Select(Decode), Sweeps);
 
-            var documents = DocumentFactory.Build(response, Sweeps);
-            
-            Console.WriteLine(documents);
+            foreach (var record in response) {
+                Console.WriteLine(record.Time == Document.ParseDecimalWithSiUnit("2.5n"));
+            }
+
 
             logger.Info("Finished pull");
             return 0;

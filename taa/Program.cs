@@ -1,33 +1,18 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Net.Mime;
-using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
 using CommandLine;
-using DynamicExpresso;
 using Logger;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Driver;
-using NLua;
-using ShellProgressBar;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
 
 namespace taa {
     internal class Program {
         private static void Main(string[] args) {
+            var param = "pull --host 150.89.227.97 --port 28001 --sweeps 5000 m8d[2.5n]".Split(' ');
+
+
             var logger = new Logger.Logger(new ConsoleLogger());
-            Parser.Default.ParseArguments<Push,Pull>(args).MapResult(
+            Parser.Default.ParseArguments<Push, Pull>(param).MapResult(
                 (Push opt) => opt.Run(logger),
-                (Pull opt)=>opt.Run(logger),
+                (Pull opt) => opt.Run(logger),
              err => 1);
         }
 
