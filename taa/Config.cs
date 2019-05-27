@@ -22,17 +22,15 @@ namespace taa {
         [YamlMember(Alias = "parallel")]
         public int Parallel { get; }
 
-        [YamlMember(Alias = "times")] public int Times { get; }
 
         [YamlMember(Alias = "sweeps")] public int Sweep { get; }
 
         [YamlMember(Alias = "database")] public DatabaseConfig DatabaseConfig { get; private set; }
 
-        public Config(int p, int time, int sweep) {
+        public Config(int p, int sweep) {
             ConditionList = new Dictionary<string, string>();
             ExpressionList = new List<string>();
             Parallel = p;
-            Times = time;
             Sweep = sweep;
         }
 

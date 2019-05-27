@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
 using DynamicExpresso;
+using Logger;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
@@ -23,8 +24,10 @@ using YamlDotNet.Serialization.NamingConventions;
 namespace taa {
     internal class Program {
         private static void Main(string[] args) {
-            Parser.Default.ParseArguments<Push>(args).MapResult(
-                (Push opt) => opt.Run(),
+            var logger = new Logger.Logger(new ConsoleLogger());
+            Parser.Default.ParseArguments<Push,Pull>(args).MapResult(
+                (Push opt) => opt.Run(logger),
+                (Pull opt)=>opt.Run(logger),
              err => 1);
         }
 

@@ -69,7 +69,7 @@ namespace taa {
                                 .ForAll(seed => {
                                     // Record を作成
                                     var path = Path.Combine(dir, $"SEED{seed:D5}.csv");
-                                    q.TryAdd(new Document(path, config.Times, seed));
+                                    q.TryAdd(new Document(path, config.Sweep, seed));
                                     cpb.Tick();
                                 });
                             q.CompleteAdding();
