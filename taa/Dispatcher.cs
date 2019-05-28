@@ -9,6 +9,32 @@ using ShellProgressBar;
 using YamlDotNet.Serialization;
 
 namespace taa {
+    public class Request {
+        public Transistor Vtn { get; set; }
+        public Transistor Vtp { get; set; }
+        public IReadOnlyCollection<Tuple<string, decimal>> TargetList { get; private set; }
+        public int SeedStart { get; set; }
+        public int SeedEnd { get; set; }
+        public int Sweep { get; set; }
+
+        public int Size => TargetList.Count * (SeedEnd - SeedStart + 1);
+
+        public Request(
+            double vtnVoltage, double vtnSigma, double vtnDeviation,
+            double vtpVoltage, double vtpSigma, double vtpDeviation,
+            int seedStart, int seedEnd,
+            int sweep,
+            IEnumerable<Tuple<string, decimal>> targets
+        ) {
+            Vtn=new Transistor(vtnVoltage, vtnSigma, vtnDeviation);
+            Vtp=new Transistor(vtpVoltage, vtpSigma, vtpDeviation);
+            SeedStart = seedStart;
+            SeedEnd = seedEnd;
+            Sweep = sweep;
+            TargetList = targets.ToList();
+        }
+    }
+    
     public class Dispatcher {
         private readonly Config config;
 
@@ -37,6 +63,17 @@ namespace taa {
             BackgroundColor = ConsoleColor.DarkGray,
             ProgressCharacter = '>',
         };
+
+        public Tuple<string, long>[] Start(CancellationToken token, Request request) {
+            const int mainProcesses = 3;
+            var expressionCount = config.ExpressionList.Count;
+
+            var result = new long[expressionCount];
+            
+         
+
+            return result.Zip(config.ExpressionList, (l, s) => Tuple.Create(s, l)).ToArray();
+        }
 
 
 

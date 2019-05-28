@@ -11,7 +11,7 @@ namespace taa {
         int Run(Logger.Logger logger);
 
         [Option("config", Required = false, HelpText = "コンフィグファイルへのパスです")]
-        string ConfigFile { get; set; }
+        string ConfigFile { get; set; } 
 
         [Option('N', "VtnVoltage", Default = 0.6, Required = false,  HelpText = "Vtnの閾値電圧です")]
         double VtnVoltage { get; set; }

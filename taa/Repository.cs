@@ -9,14 +9,14 @@ using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver.Linq;
 using MongoDB.Driver;
+using ShellProgressBar;
 
 namespace taa {
-    public class Repository  {
+    public class Repository {
         private readonly DatabaseConfig config;
         private readonly IMongoDatabase db;
 
         public Repository(DatabaseConfig config) {
-
             this.config = config;
             var client = new MongoClient(config.ToString());
             db = client.GetDatabase(config.Name);
@@ -35,8 +35,34 @@ namespace taa {
                 }).ToList();
             return collection.BulkWrite(requests);
         }
-        
-        public Record[] Pull(Transistor vtn, Transistor vtp, IEnumerable<Tuple<string, decimal>> targets, int sweeps) {
+
+        public Record[] PullRange(Request request, ChildProgressBar pb) {
+            var col = db.GetCollection<Record>(config.Collection);
+            var tasks = new List<Task<IAsyncCursor<Record>>>();
+
+            foreach (var (s,t) in request.TargetList) {
+                var time = $"{t:E10}";
+                tasks.Add(col.FindAsync(r =>
+                    r.Seed <= request.SeedEnd &&
+                    r.Seed >= request.SeedStart &&
+
+                    r.Sweeps == request.Sweep &&
+                    r.Signal == s &&
+                    r.Time == time &&
+                    request.Vtn.Deviation == r.VtnDeviation && request.Vtn.Sigma == r.VtnSigma &&
+                    request.Vtn.Voltage == r.VtnVoltage &&
+                    request.Vtp.Deviation == r.VtpDeviation && request.Vtp.Sigma == r.VtpSigma &&
+                    request.Vtp.Voltage == r.VtpVoltage
+                ));
+            }
+
+            return Task.WhenAll(tasks).ContinueWith(t => {
+                pb.Tick();
+                return t.Result.SelectMany(c => c.ToList());
+            }).Result.ToArray();
+        }
+
+        public Record[] Pull(Transistor vtn, Transistor vtp, IEnumerable<Tuple<string, string>> targets, int sweeps, int seed) {
             var col = db.GetCollection<Record>(config.Collection);
             //var tasks = new List<Task<IAsyncCursor<Record>>>();
             //foreach (var (signal, time) in targets) {
@@ -45,13 +71,18 @@ namespace taa {
 
             //var records = Task.WhenAll(tasks).Result.SelectMany(c => c.ToList());
 
-            // TODO: r.Timeとtimeの比較がうまくできてない。意味不明マジで
+            // TODO: r.Time縺ｨtime
             var records = new List<Record>();
 
             foreach (var (signal, time) in targets) {
-                records.AddRange(col.Find(r=>
-                    r.VtnDeviation==vtn.Deviation
-                    ).ToList());
+                records.AddRange(col.Find(r =>
+                    r.Sweeps == sweeps &&
+                    r.Signal == signal &&
+                    r.Time == time &&
+                    r.Seed == seed &&
+                    vtn.Deviation == r.VtnDeviation && vtn.Sigma == r.VtnSigma && vtn.Voltage == r.VtnVoltage &&
+                    vtp.Deviation == r.VtpDeviation && vtp.Sigma == r.VtpSigma && vtp.Voltage == r.VtpVoltage
+                ).ToList());
             }
 
             return records.ToArray();
@@ -64,41 +95,29 @@ namespace taa {
         public decimal Deviation { get; set; }
 
         public Transistor(double v, double s, double d) {
-            Voltage = (decimal)v;
-            Sigma = (decimal)s;
+            Voltage = (decimal) v;
+            Sigma = (decimal) s;
             Deviation = (decimal) d;
         }
-
     }
 
     public class Record {
         public ObjectId Id { get; set; }
 
-        [BsonElement("vtn-voltage")]
-        public decimal VtnVoltage { get; set; }
-        [BsonElement("vtn-sigma")]
-        public decimal VtnSigma { get; set; }
-        [BsonElement("vtn-deviation")]
-        public decimal VtnDeviation { get; set; }
-        [BsonElement("vtp-voltage")]
-        public decimal VtpVoltage { get; set; }
-        [BsonElement("vtp-sigma")]
-        public decimal VtpSigma { get; set; }
-        [BsonElement("vtp-deviation")]
-        public decimal VtpDeviation { get; set; }
-        [BsonElement("time")]
-        public decimal Time { get; set; }
-        [BsonElement("values")]
-        public decimal[] Values { get; set; }
-        [BsonElement("signal")]
-        public string Signal { get; set; }
-        [BsonElement("seed")]
-        public int Seed { get; set; }
-        [BsonElement("sweeps")]
-        public int Sweeps { get; set; }
+        [BsonElement("vtn-voltage")] public decimal VtnVoltage { get; set; }
+        [BsonElement("vtn-sigma")] public decimal VtnSigma { get; set; }
+        [BsonElement("vtn-deviation")] public decimal VtnDeviation { get; set; }
+        [BsonElement("vtp-voltage")] public decimal VtpVoltage { get; set; }
+        [BsonElement("vtp-sigma")] public decimal VtpSigma { get; set; }
+        [BsonElement("vtp-deviation")] public decimal VtpDeviation { get; set; }
+        [BsonElement("time")] public string Time { get; set; }
+        [BsonElement("values")] public decimal[] Values { get; set; }
+        [BsonElement("signal")] public string Signal { get; set; }
+        [BsonElement("seed")] public int Seed { get; set; }
+        [BsonElement("sweeps")] public int Sweeps { get; set; }
 
-        public Record(Transistor vtn,Transistor vtp,
-                      decimal time, IEnumerable<decimal> values, string signal, int seed) {
+        public Record(Transistor vtn, Transistor vtp,
+            decimal time, IEnumerable<decimal> values, string signal, int seed) {
             VtnDeviation = vtn.Deviation;
             VtnSigma = vtn.Sigma;
             VtnVoltage = vtn.Voltage;
@@ -107,14 +126,14 @@ namespace taa {
             VtpSigma = vtp.Sigma;
             VtpVoltage = vtp.Voltage;
 
-            Time = time;
+            Time = $"{time:E10}";
             Values = values.ToArray();
             Signal = signal;
             Seed = seed;
             Sweeps = values.Count();
         }
 
-        
+
         public FilterDefinition<Record> Filter =>
             Builders<Record>.Filter.Where(r =>
                 r.Signal == Signal &&
@@ -132,8 +151,9 @@ namespace taa {
 
         public UpdateDefinition<Record> Update => Builders<Record>.Update.Set(f => f.Values, Values);
 
-        public static FilterDefinition<Record> FindFilter(Transistor vtn, Transistor vtp, string signal, decimal time,
-            int sweeps)
+        public static FilterDefinition<Record> FindFilter(
+            Transistor vtn, Transistor vtp,
+            string signal, string time, int sweeps)
             => Builders<Record>.Filter
                 .Where(r =>
                     r.Signal == signal &&

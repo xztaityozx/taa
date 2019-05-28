@@ -22,7 +22,6 @@ namespace taa {
         [YamlMember(Alias = "parallel")]
         public int Parallel { get; }
 
-
         [YamlMember(Alias = "sweeps")] public int Sweep { get; }
 
         [YamlMember(Alias = "database")] public DatabaseConfig DatabaseConfig { get; private set; }

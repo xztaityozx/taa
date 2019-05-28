@@ -26,7 +26,7 @@ namespace taa {
                 [")"] = ")"
             };
 
-            var cOption = new ProgressBarOptions {
+            var option = new ProgressBarOptions {
                 ProgressCharacter = '-',
                 ForegroundColor = ConsoleColor.Green,
                 BackgroundColor = ConsoleColor.DarkGreen,
@@ -35,7 +35,7 @@ namespace taa {
 
             // build condition map
             using (var pb =
-                parent.Spawn(config.ConditionList.Count, "Build conditions", cOption)) {
+                parent.Spawn(config.ConditionList.Count, "Build conditions", option)) {
 
                 var idx = 0;
                 foreach (var (key,value) in config.ConditionList) {
@@ -59,7 +59,7 @@ namespace taa {
             parent.Tick("[Done]: Build Condition List");
 
             // parse delegate
-            using (var pb = parent.Spawn(config.ExpressionList.Count, "Build Delegates", cOption)) {
+            using (var pb = parent.Spawn(config.ExpressionList.Count, "Build Delegates", option)) {
                 var idx = 0;
                 var itr=new Interpreter();
                 foreach (var exp in config.ExpressionList

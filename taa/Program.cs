@@ -6,7 +6,8 @@ using Logger;
 namespace taa {
     internal class Program {
         private static void Main(string[] args) {
-            var param = "pull --host 150.89.227.97 --port 28001 --sweeps 5000 m8d[2.5n]".Split(' ');
+//            var param = "push --host 150.89.227.97 --port 28001 /home/xztaityozx/TestDir/m8d/SEED00001.csv".Split(' ');
+            var param = "pull --host 150.89.227.97 --port 28001 --sweeps 5000 m8d[2.5n] m8d[10n] m8d[17.5n]".Split(' ');
 
 
             var logger = new Logger.Logger(new ConsoleLogger());

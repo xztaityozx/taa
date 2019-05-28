@@ -21,7 +21,7 @@ namespace taa {
             }
 
             foreach (var item in collection) {
-                map[item.Seed].AppendRange(item.Signal, item.Time, item.Values);
+                map[item.Seed].AppendRange(item.Signal, decimal.Parse(item.Time, NumberStyles.Float), item.Values);
             }
 
             return map.OrderBy(d => d.Key).Select(d => d.Value).ToArray();
@@ -112,7 +112,11 @@ namespace taa {
         public override string ToString() {
             var sb = new StringBuilder();
 
-            sb.AppendLine($"key: {dataMap.Select(r => r.Keys)}");
+            var keys = dataMap[0].Select(m => m.Key);
+            sb.AppendLine(string.Join(",", keys));
+            foreach (var map in dataMap) {
+                sb.AppendLine(string.Join(",", keys.Select(s => map[s])));
+            }
 
             return sb.ToString();
         }

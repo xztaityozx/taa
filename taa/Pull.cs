@@ -12,6 +12,9 @@ namespace taa {
         [Value(0,Required = true, HelpText = "信号名[時間]で取り出す値を指定します")]
         public IEnumerable<string> Request { get; set; }
         
+        [Option("seed", Default = 1, HelpText = "Seed値")]
+        public int Seed { get; set; }
+        
         public int Run(Logger.Logger logger) {
             logger.Info("Start pull");
             
@@ -26,10 +29,13 @@ namespace taa {
             var vtn = new Transistor(VtnVoltage, VtnSigma, VtnDeviation);
             var vtp = new Transistor(VtpVoltage, VtpSigma, VtpDeviation);
 
-            var response = repo.Pull(vtn, vtp, Request.Select(Decode), Sweeps);
+            var response = repo.Pull(vtn, vtp, Request.Select(Decode), Sweeps, Seed);
 
-            foreach (var record in response) {
-                Console.WriteLine(record.Time == Document.ParseDecimalWithSiUnit("2.5n"));
+
+            var document = DocumentFactory.Build(response, Sweeps);
+
+            foreach (var d in document) {
+                Console.WriteLine(d);
             }
 
 
@@ -37,15 +43,16 @@ namespace taa {
             return 0;
         }
 
-        private static Tuple<string, decimal> Decode(string key) {
+        private static Tuple<string, string> Decode(string key) {
             var split = key.Split('[', ']');
             var signal = split[0];
             var time = Document.ParseDecimalWithSiUnit(split[1]);
 
-            return Tuple.Create(signal, time);
+            return Tuple.Create(signal, $"{time:E10}");
         }
 
         public string ConfigFile { get; set; }
+        
         public double VtnVoltage { get; set; }
         public double VtnSigma { get; set; }
         public double VtnDeviation { get; set; }
