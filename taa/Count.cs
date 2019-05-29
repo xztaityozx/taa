@@ -5,7 +5,7 @@ using CommandLine;
 
 namespace taa {
     [Verb("count", HelpText = "カウントします")]
-    public class Count : IOption {
+    public class Count : ISubCommand {
         
         [Option("start",Default = 1,HelpText = "Seedの開始値です")]
         public int SeedStart { get; set; }
@@ -14,21 +14,7 @@ namespace taa {
         public int SeedEnd { get; set; }
         
         public int Run(Logger.Logger logger) {
-            logger.Info("Start count");
-
-            ConfigFile = string.IsNullOrEmpty(ConfigFile)
-                ? Path.Combine(
-                    Environment.GetEnvironmentVariable("HOME"),
-                    ".config",
-                    "taa",
-                    "config.yml"
-                )
-                : ConfigFile;
-
             
-            var dispatcher = new Dispatcher(ConfigFile);
-
-            logger.Info("Finished count");
             return 0;
         }
 

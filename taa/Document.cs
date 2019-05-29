@@ -4,67 +4,35 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection.Metadata;
-using System.Text;
 
 namespace taa {
-    public class DocumentFactory {
-        public static Document[] Build(IEnumerable<Record> record, int sweeps) {
-            var collection = record.ToArray();
-
-            var signals = collection.Select(r => r.Signal).Distinct().ToArray();
-            var seeds = collection.Select(r => r.Seed).Distinct().ToArray();
-            var map = new Map<int, Document>();
-
-            foreach (var seed in seeds) {
-                map[seed]=new Document(sweeps);
-            }
-
-            foreach (var item in collection) {
-                map[item.Seed].AppendRange(item.Signal, decimal.Parse(item.Time, NumberStyles.Float), item.Values);
-            }
-
-            return map.OrderBy(d => d.Key).Select(d => d.Value).ToArray();
-        }
-    }
-
-    public class Document : IEnumerable<Map<string, decimal>> {
+    public class Document :IEnumerable<Map<string,decimal>> {
         private readonly List<Map<string, decimal>> dataMap;
         public int Seed { get; }
+        public int Sweeps { get; }
         private readonly char[] delimiter = {' ', ','};
 
+        public List<string> KeyList;
 
-        public void AppendRange(string signal, decimal time, decimal[] values) {
-            for (var i = 0; i < values.Length; i++) {
-                dataMap[i][GetKey(signal, time)] = values[i];
-            }
-        }
-
-        public Document(int sweeps) {
-            dataMap=new List<Map<string, decimal>>();
-            for (var i = 0; i < sweeps; i++) {
-                dataMap.Add(new Map<string, decimal>());
-            }
-        }
-
-        public Document(string file, int times, int seed) {
+        public Document(int seed, int sweeps) {
             dataMap = new List<Map<string, decimal>>();
-            for (var i = 0; i < times; i++) {
+            for (var i = 0; i < sweeps; i++) {
                 dataMap.Add(new Map<string, decimal>());
             }
 
             Seed = seed;
+            Sweeps = sweeps;
+            KeyList = new List<string>();
+        }
 
-
-            string doc;
-            using (var sr = new StreamReader(file)) {
-                doc = sr.ReadToEnd();
-            }
+        public Document(string file, int seed, int sweeps) :this(seed,sweeps) {
+            string str;
+            using (var sr = new StreamReader(file)) str = sr.ReadToEnd();
 
             var signals = new List<string>();
             var indexes = new Map<decimal, int>();
 
-            foreach (var line in doc.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            foreach (var line in str.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
                 .Select(line => line.Split(delimiter, StringSplitOptions.RemoveEmptyEntries))) {
                 if (line.All(string.IsNullOrEmpty)) continue;
                 if (line[0][0] == '#') continue;
@@ -76,28 +44,23 @@ namespace taa {
                     var values = line.Skip(1).Select(d => decimal.Parse(d, NumberStyles.Float)).ToArray();
 
                     for (var i = 0; i < signals.Count; i++) {
-                        dataMap[indexes[time]][GetKey(signals[i], time)] = values[i];
+                        var key = EncodeKey(signals[i], time);
+                        KeyList.Add(key);
+                        dataMap[indexes[time]][key] = values[i];
                     }
 
                     indexes[time]++;
                 }
             }
+
+            KeyList = KeyList.Distinct().ToList();
+
+            if (indexes.Any(i => i.Value != Sweeps))
+                throw new Exception($"データの長さがおかしいです: {string.Join(", ", indexes.Select(i => i.Value - 1))}");
         }
 
-        public static string GetKey(string signal, decimal time) => $"{signal}/{time:E10}";
+        public static string EncodeKey(string s, decimal t) => $"{s}/{t:E10}";
 
-        public static Tuple<string, decimal> DecodeKey(string key) {
-            var split = key.Split("/", StringSplitOptions.RemoveEmptyEntries);
-            return Tuple.Create(split[0], decimal.Parse(split[1], NumberStyles.Float));
-        }
-
-        public IEnumerator<Map<string, decimal>> GetEnumerator() {
-            return dataMap.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator() {
-            return GetEnumerator();
-        }
         public static decimal ParseDecimalWithSiUnit(string s) {
             return decimal.Parse(s.Replace("G", "E09")
                     .Replace("M", "E06")
@@ -109,16 +72,37 @@ namespace taa {
                 NumberStyles.Float);
         }
 
-        public override string ToString() {
-            var sb = new StringBuilder();
+        public IEnumerator<Map<string, decimal>> GetEnumerator() {
+            return dataMap.GetEnumerator();
+        }
 
-            var keys = dataMap[0].Select(m => m.Key);
-            sb.AppendLine(string.Join(",", keys));
-            foreach (var map in dataMap) {
-                sb.AppendLine(string.Join(",", keys.Select(s => map[s])));
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
+        }
+
+        public IEnumerable<Record> GenerateRecords(Transistor vtn, Transistor vtp) {
+            var box = new Map<string, List<decimal>>();
+
+            foreach (var k in KeyList) {
+                box[k] = new List<decimal>();
             }
 
-            return sb.ToString();
+            foreach (var map in dataMap) {
+                foreach (var (k,v) in map) {
+                    box[k].Add(v);
+                }
+            }
+
+            return KeyList.Select(k => new Record {
+                Vtn = vtn,
+                Vtp = vtp,
+                Key = k,
+                Seed = Seed,
+                Sweeps = Sweeps,
+                Values = box[k].ToArray()
+            });
         }
+
+        
     }
 }

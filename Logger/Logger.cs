@@ -4,7 +4,7 @@ using System.IO;
 
 namespace Logger {
     public class Logger  {
-        private List<ILogWriter> writers;
+        private readonly List<ILogWriter> writers;
         public LogLevel LogLevel { get; }
 
         private void Write(LogLevel level, object message) {

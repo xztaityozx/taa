@@ -1,81 +1,75 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
+using YamlDotNet.RepresentationModel;
 using YamlDotNet.Serialization;
+using YamlDotNet.Serialization.NamingConventions;
 
 namespace taa {
+
     public class Config {
         /// <summary>
         /// 評価式のリスト
         /// </summary>
         [YamlMember(Alias = "conditions")]
-        public Dictionary<string, string> ConditionList { get; }
+        public Dictionary<string, string> Conditions { get; set; }
 
         /// <summary>
         /// 数え上げ対象の評価式のリスト
         /// </summary>
         [YamlMember(Alias = "expressions")]
-        public List<string> ExpressionList { get; }
+        public List<string> Expressions { get; set; }
 
         /// <summary>
         /// 並列数
         /// </summary>
         [YamlMember(Alias = "parallel")]
-        public int Parallel { get; }
+        public int Parallel { get; set; }
 
-        [YamlMember(Alias = "sweeps")] public int Sweep { get; }
+        [YamlMember(Alias = "database")]
+        public DatabaseConfig Database { get; set; }
 
-        [YamlMember(Alias = "database")] public DatabaseConfig DatabaseConfig { get; private set; }
+        [YamlMember(Alias = "logDir")]
+        public string LogDir { get; set; }
 
-        public Config(int p, int sweep) {
-            ConditionList = new Dictionary<string, string>();
-            ExpressionList = new List<string>();
-            Parallel = p;
-            Sweep = sweep;
-        }
+        public Config() { }
 
-        public void AddCondition(string key, string value) => ConditionList.Add(key, value);
-        public void AddExpression(string target) => ExpressionList.Add(target);
-
-        public static Config Deserialize(string path) {
+        public Config(string path, int parallel, string host, int port, string dbName, string collectionName) {
             string str;
             using (var sr = new StreamReader(path)) {
                 str = sr.ReadToEnd();
             }
 
-            var d = new Deserializer();
-            return d.Deserialize<Config>(str);
+            var d = new Deserializer().Deserialize<Config>(str);
+
+            Conditions = d.Conditions;
+            Expressions = d.Expressions;
+            Parallel = Set(parallel, d.Parallel, p => p != 0);
+            Database = d.Database;
+            Database.CollectionName = Set(collectionName, d.Database.CollectionName, s => !string.IsNullOrEmpty(s));
+            Database.DataBaseName = Set(dbName, d.Database.DataBaseName, s => !string.IsNullOrEmpty(s));
+            Database.Host = Set(host, d.Database.Host, s => !string.IsNullOrEmpty(s));
+            Database.Port = Set(port, d.Database.Port, p => p >= 1024);
+
         }
 
-        public void SetOrDefault(string host, int port, string name, string colName) {
-            if (DatabaseConfig==null ) DatabaseConfig = new DatabaseConfig(host, port, name, colName);
-            else {
-                if (host != "localhost") DatabaseConfig.Host = host;
-                if (port != 27017) DatabaseConfig.Port = port;
-                if (name != "results") DatabaseConfig.Name = name;
-                if (colName != "records") DatabaseConfig.Collection = colName;
-            }
+        private static T Set<T>(T a, T b, Func<T,bool> func) {
+            return func(a) ? a : b;
         }
     }
 
     public class DatabaseConfig {
-        [YamlMember]
+        [YamlMember(Alias = "host")]
         public string Host { get; set; }
-        [YamlMember]
+        [YamlMember(Alias = "port")]
         public int Port { get; set; }
-        [YamlMember]
-        public string Name { get; set; }
-        [YamlMember]
-        public string Collection { get; set; }
+        [YamlMember(Alias = "dbName")]
+        public string DataBaseName { get; set; }
+        [YamlMember(Alias = "collectionName")]
+        public string CollectionName { get; set; }
 
         public override string ToString() {
             return $"mongodb://{Host}:{Port}";
-        }
-
-        public DatabaseConfig(string host, int port, string name, string collection) {
-            Host = host;
-            Port = port;
-            Name = name;
-            Collection = collection;
         }
     }
 }
