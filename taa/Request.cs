@@ -1,5 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace taa {
@@ -9,29 +11,14 @@ namespace taa {
         public int Sweeps { get; set; }
         public int SeedStart { get; set; }
         public int SeedEnd { get; set; }
-        public string Key { get; set; }
+        public List<string> Key { get; set; }
 
-        public static IEnumerable<Request> GenerateRequests(
-            Transistor vtn, Transistor vtp, 
-            int sweeps, int ss, int se,
-            IEnumerable<string> key) {
-            return key.Select(k => new Request {
-                    Vtn = vtn,
-                    Vtp = vtp,
-                    Sweeps = sweeps,
-                    SeedStart = ss,
-                    SeedEnd = se,
-                    Key = k
-                })
-                .ToList();
-        }
-
-        public FilterDefinition<Record> FindFiler() {
-            return Builders<Record>.Filter.Where(r =>
-                Vtn == r.Vtn && Vtp == r.Vtp &&
-                Sweeps == r.Sweeps && Key == r.Key &&
-                r.Seed >= SeedStart && r.Seed <= SeedEnd
-            );
-        }
+        public FilterDefinition<Record>[] FindFilterDefinitions(ObjectId id)
+            => Key.Select(key=> Builders<Record>.Filter.Where(r => 
+                r.Seed <= SeedEnd && r.Seed >= SeedStart &&
+                r.ParameterId == id &&
+                r.Key == key)).ToArray();
+                
+                )
     }
 }

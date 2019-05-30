@@ -1,13 +1,12 @@
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace taa {
-    public struct Transistor {
+    public class Transistor {
         public bool Equals(Transistor other) {
             return Voltage == other.Voltage && Sigma == other.Sigma && Deviation == other.Deviation;
         }
 
         public override bool Equals(object obj) {
-            if (ReferenceEquals(null, obj)) return false;
             return obj is Transistor other && Equals(other);
         }
 

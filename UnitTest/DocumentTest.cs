@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -106,6 +107,40 @@ TIME , A , B , C
             );
 
             File.Delete(p);
+        }
+
+        [Fact]
+        public void BuildDocumentsTest() {
+            const int sweep = 5;
+            var values = new List<decimal[]>();
+            const string signal = "A";
+            var times = new[] {1M, 2M, 3M};
+            var records = new List<taa.Record>();
+
+            for (var i = 0; i < 3; i++) {
+                values.Add(Enumerable.Repeat(0, sweep)
+                    .Select(_ => (decimal) new Random(DateTime.Now.Millisecond).Next()).ToArray());
+                records.Add(new taa.Record {
+                    Values = values.Last(),
+                    Sweeps = sweep,
+                    Key = Document.EncodeKey(signal,times[i]),
+                });
+            }
+
+            var d = Document.BuildDocuments(records);
+            var actual = d.First();
+            Assert.True(1 == d.Count());
+            Assert.Equal(
+                new[] {
+                    Document.EncodeKey(signal, 1M), Document.EncodeKey(signal, 2M), Document.EncodeKey(signal, 3M),
+                }, actual.KeyList
+            );
+
+            for (var i = 0; i < sweep; i++) {
+                Assert.Equal(values[0][i], actual.ElementAt(i)[Document.EncodeKey(signal, 1M)]);
+                Assert.Equal(values[1][i], actual.ElementAt(i)[Document.EncodeKey(signal, 2M)]);
+                Assert.Equal(values[2][i], actual.ElementAt(i)[Document.EncodeKey(signal, 3M)]);
+            }
         }
     }
 }

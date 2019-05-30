@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using CommandLine;
+using Kurukuru;
+using MongoDB.Driver;
 
 namespace taa {
     [Verb("push", HelpText = "DBにデータをPushします")]
@@ -11,9 +14,16 @@ namespace taa {
         [Option("seed", Default = 1, HelpText = "Seedの値です")]
         public int Seed { get; set; }
 
-        public override int Run() {
+        public override bool RunSuppress() {
             
-            return 0;
+        }
+
+        public override bool Run() {
+            LoadConfig();
+            
+
+            Logger.Info("Finished Push");
+            return true;
         }
 
         public override string ToString() {

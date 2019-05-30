@@ -25,6 +25,14 @@ namespace taa {
             KeyList = new List<string>();
         }
 
+        public void Append(string key, decimal[] values) {
+            for (var i = 0; i < Sweeps; i++) {
+                dataMap[i][key] = values[i];
+            }
+            KeyList.Add(key);
+        }
+
+
         public Document(string file, int seed, int sweeps) :this(seed,sweeps) {
             string str;
             using (var sr = new StreamReader(file)) str = sr.ReadToEnd();
@@ -32,7 +40,7 @@ namespace taa {
             var signals = new List<string>();
             var indexes = new Map<decimal, int>();
 
-            foreach (var line in str.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
+            foreach (var line in str.Split("\n", StringSplitOptions.RemoveEmptyEntries)
                 .Select(line => line.Split(delimiter, StringSplitOptions.RemoveEmptyEntries))) {
                 if (line.All(string.IsNullOrEmpty)) continue;
                 if (line[0][0] == '#') continue;
@@ -56,7 +64,7 @@ namespace taa {
             KeyList = KeyList.Distinct().ToList();
 
             if (indexes.Any(i => i.Value != Sweeps))
-                throw new Exception($"データの長さがおかしいです: {string.Join(", ", indexes.Select(i => i.Value - 1))}");
+                throw new Exception($"データの長さがおかしいです: {string.Join(", ", indexes.Select(i => i.Value))}");
         }
 
         public static string EncodeKey(string s, decimal t) => $"{s}/{t:E10}";
@@ -80,6 +88,12 @@ namespace taa {
             return GetEnumerator();
         }
 
+        /// <summary>
+        /// DocumentからRecord[]を作る
+        /// </summary>
+        /// <param name="vtn"></param>
+        /// <param name="vtp"></param>
+        /// <returns></returns>
         public IEnumerable<Record> GenerateRecords(Transistor vtn, Transistor vtp) {
             var box = new Map<string, List<decimal>>();
 
@@ -103,6 +117,24 @@ namespace taa {
             });
         }
 
+        /// <summary>
+        /// Record[]からDocument[]を生成する。Vtn,Vtpの組み合わせがすべて一緒でないといけない
+        /// </summary>
+        /// <param name="records"></param>
+        /// <returns></returns>
+        public static IEnumerable<Document> BuildDocuments(IEnumerable<Record> records) {
+            var box = records as Record[] ?? records.ToArray();
+            if (box.Select(r => new {n = r.Vtn, p = r.Vtp}).Distinct().Count() != 1)
+                throw new Exception("Vtn,Vtpの組み合わせが複数あります");
+
+            var map = new Map<int, Document>();
+            foreach (var record in box) {
+                if (map[record.Seed] == null) map[record.Seed] = new Document(record.Seed, record.Sweeps);
+                map[record.Seed].Append(record.Key, record.Values);
+            }
+
+            return map.Select(m => m.Value);
+        }
         
     }
 }

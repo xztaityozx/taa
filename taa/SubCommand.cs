@@ -19,15 +19,19 @@ namespace taa {
 
             Config = new Config(ConfigFile, Parallel, Host, Port, DatabaseName, CollectionName);
 
-            Logger = new Logger.Logger(new ConsoleLogger(), new FileLogger(
-                Path.Combine(
-                    Config.LogDir,
-                    DateTime.Now.ToString("YYYY-MM-dd-HH-mm-ss.log")
-                )
+            var console = new ConsoleLogger();
+            var file=new FileLogger(Path.Combine(
+                Config.LogDir,
+                DateTime.Now.ToString("YYYY-MM-dd-HH-mm-ss.log")
             ));
+
+            Logger = Suppress ? new Logger.Logger(file) : new Logger.Logger(console, file);
+
+            Logger.Info($"Loaded Config: {ConfigFile}");
         }
 
-        public abstract int Run();
+        public abstract bool Run();
+        public abstract bool RunSuppress();
 
         public string ConfigFile { get; set; }
         public double VtnVoltage { get; set; }
@@ -43,6 +47,7 @@ namespace taa {
         public string CollectionName { get; set; }
         public int Sweeps { get; set; }
         public int Parallel { get; set; }
+        public bool Suppress { get; set; }
     }
     public interface ISubCommand {
         [Option("config", Required = false, HelpText = "コンフィグファイルへのパスです")]
@@ -86,5 +91,8 @@ namespace taa {
         
         [Option("parallel", Default = 10, HelpText = "並列実行数です")]
         int Parallel { get; set; }
+
+        [Option("suppress", Default = false, HelpText = "Stdoutに出力しません")]
+        bool Suppress { get; set; }
     }
 }

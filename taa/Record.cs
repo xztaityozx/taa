@@ -5,30 +5,25 @@ using MongoDB.Driver;
 
 namespace taa {
     public class Record {
+        [BsonElement("_id")]
         public ObjectId Id { get; set; }
+        [BsonElement("parameterId")]
+        public ObjectId ParameterId { get; set; }
 
-        [BsonElement("vtn")] public Transistor Vtn { get; set; }
-        [BsonElement("vtp")] public Transistor Vtp { get; set; }
+        public Transistor Vtn { get; set; }
+        public Transistor Vtp { get; set; }
         [BsonElement("values")] public decimal[] Values { get; set; }
-        [BsonElement("seed")] public int Seed { get; set; }
-        [BsonElement("sweeps")] public int Sweeps { get; set; }
+        [BsonElement("seed")]Å@public int Seed { get; set; }
+        public int Sweeps { get; set; }
         [BsonElement("key")] public string Key { get; set; }
 
        
         public override string ToString() {
             return
-                $" Signal/Time: {Key}, Seed: {Seed},, Sweeps: {Sweeps}, Vtn: {Vtn}, Vtp: {Vtp}, Values: [{string.Join(",", Values)}]";
+                $" Signal/Time: {Key}, Seed: {Seed}, Sweeps: {Sweeps}, Vtn: {Vtn}, Vtp: {Vtp}";
         }
 
-        public FilterDefinition<Record> UpdateFilter()
-            => Builders<Record>.Filter.Where(s =>
-                s.Key == Key &&
-                s.Sweeps == Sweeps &&
-                s.Vtn == Vtn &&
-                s.Vtp == Vtp &&
-                s.Seed == Seed
-            );
-
-
+        public FilterDefinition<Record> UpdateFindFilter()
+            => Builders<Record>.Filter.Where(r => r.ParameterId == ParameterId && r.Seed == Seed);
     }
 }

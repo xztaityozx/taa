@@ -4,10 +4,12 @@ using System.Linq;
 using CommandLine;
 using Logger;
 using MongoDB.Driver;
+using ShellProgressBar;
 
 namespace taa {
     internal class Program {
         private static void Main(string[] args) {
+            
         }
 
     }
