@@ -12,13 +12,9 @@ namespace taa {
         [Value(0,Required = true, HelpText = "信号名[時間]で取り出す値を指定します")]
         public IEnumerable<string> Request { get; set; }
         
-        [Option("seed", Default = 1, HelpText = "Seed値")]
-        public int Seed { get; set; }
-        
-        public override int Run() {
+        public override bool Run() {
             
-            return 0;
+            return true;
         }
-
     }
 }

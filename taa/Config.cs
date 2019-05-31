@@ -6,7 +6,6 @@ using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
 namespace taa {
-
     public class Config {
         /// <summary>
         /// 評価式のリスト
@@ -34,7 +33,7 @@ namespace taa {
 
         public Config() { }
 
-        public Config(string path, int parallel, string host, int port, string dbName, string collectionName) {
+        public Config(string path, int parallel, string host, int port, string dbName) {
             string str;
             using (var sr = new StreamReader(path)) {
                 str = sr.ReadToEnd();
@@ -46,11 +45,11 @@ namespace taa {
             Expressions = d.Expressions;
             Parallel = Set(parallel, d.Parallel, p => p != 0);
             Database = d.Database;
-            Database.CollectionName = Set(collectionName, d.Database.CollectionName, s => !string.IsNullOrEmpty(s));
             Database.DataBaseName = Set(dbName, d.Database.DataBaseName, s => !string.IsNullOrEmpty(s));
             Database.Host = Set(host, d.Database.Host, s => !string.IsNullOrEmpty(s));
             Database.Port = Set(port, d.Database.Port, p => p >= 1024);
 
+            LogDir = taa.FilePath.Expand(d.LogDir);
         }
 
         private static T Set<T>(T a, T b, Func<T,bool> func) {
@@ -63,10 +62,8 @@ namespace taa {
         public string Host { get; set; }
         [YamlMember(Alias = "port")]
         public int Port { get; set; }
-        [YamlMember(Alias = "dbName")]
+        [YamlMember(Alias = "name")]
         public string DataBaseName { get; set; }
-        [YamlMember(Alias = "collectionName")]
-        public string CollectionName { get; set; }
 
         public override string ToString() {
             return $"mongodb://{Host}:{Port}";

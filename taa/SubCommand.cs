@@ -7,7 +7,8 @@ namespace taa {
     public abstract class SubCommand : ISubCommand {
         protected Config Config;
         protected Logger.Logger Logger;
-        public void LoadConfig() {
+
+        protected void LoadConfig() {
             ConfigFile = string.IsNullOrEmpty(ConfigFile)
                 ? Path.Combine(
                     Environment.GetEnvironmentVariable("HOME"),
@@ -16,22 +17,24 @@ namespace taa {
                     "config.yml"
                 )
                 : ConfigFile;
-
-            Config = new Config(ConfigFile, Parallel, Host, Port, DatabaseName, CollectionName);
+            
+            if(File.Exists(ConfigFile)) Config = new Config(ConfigFile, Parallel, Host, Port, DatabaseName);
+            else {
+                new Logger.Logger(new ConsoleLogger()).Throw("Config file not found.", new FileNotFoundException("", ConfigFile));
+            }
 
             var console = new ConsoleLogger();
             var file=new FileLogger(Path.Combine(
                 Config.LogDir,
-                DateTime.Now.ToString("YYYY-MM-dd-HH-mm-ss.log")
+                DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss")+".log"
             ));
 
-            Logger = Suppress ? new Logger.Logger(file) : new Logger.Logger(console, file);
+            Logger = new Logger.Logger(console, file);
 
             Logger.Info($"Loaded Config: {ConfigFile}");
         }
 
         public abstract bool Run();
-        public abstract bool RunSuppress();
 
         public string ConfigFile { get; set; }
         public double VtnVoltage { get; set; }
@@ -44,7 +47,6 @@ namespace taa {
         public string Host { get; set; }
         public int Port { get; set; }
         public string DatabaseName { get; set; }
-        public string CollectionName { get; set; }
         public int Sweeps { get; set; }
         public int Parallel { get; set; }
         public bool Suppress { get; set; }
@@ -62,13 +64,13 @@ namespace taa {
         [Option("vtnDeviation", Default = 1.0, Required = false,  HelpText = "Vtnの偏差です")]
         double VtnDeviation { get; set; }
 
-        [Option('N', "VtpVoltage", Default = -0.6, Required = false,  HelpText = "Vtpの閾値電圧です")]
+        [Option('P', "VtpVoltage", Default = -0.6, Required = false,  HelpText = "Vtpの閾値電圧です")]
         double VtpVoltage { get; set; }
 
-        [Option("vtnSigma", Required = false, Default = 0.046, HelpText = "Vtpのシグマです")]
+        [Option("vtpSigma", Required = false, Default = 0.046, HelpText = "Vtpのシグマです")]
         double VtpSigma { get; set; }
 
-        [Option("vtnDeviation", Required = false, Default = 1.0, HelpText = "Vtpの偏差です")]
+        [Option("vtpDeviation", Required = false, Default = 1.0, HelpText = "Vtpの偏差です")]
         double VtpDeviation { get; set; }
 
         [Option('s', "sigma", Required = false, Default  = 0.046, HelpText = "Vtn,Vtpのシグマです.個別設定が優先されます")]
@@ -83,16 +85,11 @@ namespace taa {
         [Option("dataBaseName", Required = false, Default = "results", HelpText = "name of database")]
         string DatabaseName { get; set; }
 
-        [Option('c', "collection",  Required = false, Default = "records", HelpText = "name of collection")]
-        string CollectionName { get; set; }
 
         [Option("sweeps", Required = false, Default = 5000, HelpText = "number of sweeps")]
         int Sweeps { get; set; }
         
         [Option("parallel", Default = 10, HelpText = "並列実行数です")]
         int Parallel { get; set; }
-
-        [Option("suppress", Default = false, HelpText = "Stdoutに出力しません")]
-        bool Suppress { get; set; }
-    }
+   }
 }

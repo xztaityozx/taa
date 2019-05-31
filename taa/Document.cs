@@ -12,7 +12,7 @@ namespace taa {
         public int Sweeps { get; }
         private readonly char[] delimiter = {' ', ','};
 
-        public List<string> KeyList;
+        public readonly List<string> KeyList;
 
         public Document(int seed, int sweeps) {
             dataMap = new List<Map<string, decimal>>();
@@ -25,7 +25,7 @@ namespace taa {
             KeyList = new List<string>();
         }
 
-        public void Append(string key, decimal[] values) {
+        private void Append(string key, IReadOnlyList<decimal> values) {
             for (var i = 0; i < Sweeps; i++) {
                 dataMap[i][key] = values[i];
             }

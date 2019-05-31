@@ -18,29 +18,33 @@ namespace taa {
             var client = new MongoClient(config.ToString());
             db = client.GetDatabase(config.DataBaseName);
 
-            if (db.ListCollectionNames().ToList().All(c => c != config.CollectionName)) {
-                db.CreateCollection(config.CollectionName);
-            }
+            var collections = db.ListCollectionNames().ToList();
+            if(!collections.Contains(ParameterCollectionName)) db.CreateCollection(ParameterCollectionName);
+            if (!collections.Contains(RecordCollectionName)) db.CreateCollection(RecordCollectionName);
         }
 
+        // TODO: Exception occured!!!!!!!!!!
         public IEnumerable<string> Push(Transistor vtn, Transistor vtp, int sweeps, Record[] records) {
             var parameterCollection = db.GetCollection<Parameter>(ParameterCollectionName);
-            var p = new Parameter() {
+            var p = new Parameter {
                 Vtn = vtn,
                 Vtp = vtp,
                 Sweeps = sweeps
             };
 
             yield return "Updating...";
-            var res = parameterCollection.UpdateOne(
+
+            var res = parameterCollection.FindOneAndUpdate(
                 Builders<Parameter>.Filter.Where(r =>
                     r.Sweeps == sweeps && r.Vtn == p.Vtn && r.Vtp == p.Vtp),
                 Builders<Parameter>.Update
                     .Set(r => r.Sweeps, p.Sweeps)
                     .Set(r => r.Vtn, p.Vtn)
-                    .Set(r => r.Vtp, p.Vtp), new UpdateOptions {IsUpsert = true}
+                    .Set(r => r.Vtp, p.Vtp), new FindOneAndUpdateOptions<Parameter>{IsUpsert = true}
             );
-            p.Id = res.UpsertedId.AsObjectId;
+
+            p.Id = res.Id;
+            
 
             yield return "Writing...";
             var recordCollection = db.GetCollection<Record>(RecordCollectionName);
@@ -48,7 +52,7 @@ namespace taa {
                 records.Select(r => new UpdateOneModel<Record>(
                     Builders<Record>.Filter.Where(k =>
                         k.ParameterId == p.Id &&
-                        k.Sweeps == r.Sweeps &&
+                        k.Key == r.Key &&
                         k.Seed == r.Seed
                     ),
                     Builders<Record>.Update
@@ -71,7 +75,7 @@ namespace taa {
 
             return Task.WhenAll(tasks).ContinueWith(t =>
                     t.Result.SelectMany(k => {
-                        pb.Tick();
+                        pb?.Tick();
                         return k.ToList();
                     }))
                 .Result;

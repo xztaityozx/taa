@@ -44,9 +44,9 @@ namespace Logger {
             Write(LogLevel.Fatal, message);
         }
 
-        public void Throw(object message) {
+        public void Throw(object message, Exception e) {
             Write(LogLevel.Throw, message);
-            throw new LoggerException(message);
+            throw e;
         }
 
         public void Warn(object message) {
@@ -84,7 +84,10 @@ namespace Logger {
 
         public FileLogger(string file) {
             filePath = file;
+            if (File.Exists(filePath)) return;
+            using(var f = File.Create(filePath));
         }
+        
     }
 
     public class LoggerException : Exception {

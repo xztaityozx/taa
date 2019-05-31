@@ -14,13 +14,23 @@ namespace taa {
         [Option("seed", Default = 1, HelpText = "Seedの値です")]
         public int Seed { get; set; }
 
-        public override bool RunSuppress() {
-            
-        }
-
         public override bool Run() {
             LoadConfig();
-            
+            Logger.Info("Start Push");
+           
+            var vtn = new Transistor(VtnVoltage, VtnSigma, VtnDeviation);
+            var vtp = new Transistor(VtpVoltage, VtpSigma, VtpDeviation);
+            Spinner.Start("Generating...", spin => {
+                    var records = new Document(InputFile, Seed, Sweeps)
+                        .GenerateRecords(vtn, vtp);
+                    spin.Text = "Pushing...";
+                    var repo = new Repository(Config.Database);
+                    foreach (var s in repo.Push(vtn, vtp, Sweeps, records.ToArray())) {
+                        spin.Text = s;
+                    }
+
+                    spin.Info("Finish");
+            });
 
             Logger.Info("Finished Push");
             return true;

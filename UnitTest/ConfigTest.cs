@@ -31,13 +31,12 @@ database:
         [Fact]
         public void ConstructTest1() {
             Write();
-            var actual = new Config(path, 0, "", 0, "", "");
+            var actual = new Config(path, 0, "", 0, "");
 
             Assert.Equal(10, actual.Parallel);
             Assert.Equal("localhost",actual.Database.Host);
             Assert.Equal(27017, actual.Database.Port);
             Assert.Equal("test",actual.Database.DataBaseName);
-            Assert.Equal("result", actual.Database.CollectionName);
             Assert.Equal(2, actual.Expressions.Count);
             Assert.Equal("A&&B", actual.Expressions[0]);
             Assert.Equal("A&&!B&&C", actual.Expressions[1]);
@@ -53,12 +52,11 @@ database:
         public void ConstructTest2() {
             Write();
 
-            var actual = new Config(path, 1, "111.222.333.444", 8000, "db", "col");
+            var actual = new Config(path, 1, "111.222.333.444", 8000, "db");
             Assert.Equal(1, actual.Parallel);
             Assert.Equal("111.222.333.444", actual.Database.Host);
             Assert.Equal(8000, actual.Database.Port);
             Assert.Equal("db", actual.Database.DataBaseName);
-            Assert.Equal("col", actual.Database.CollectionName);
             Assert.Equal(2, actual.Expressions.Count);
             Assert.Equal("A&&B", actual.Expressions[0]);
             Assert.Equal("A&&!B&&C", actual.Expressions[1]);
@@ -73,7 +71,7 @@ database:
         [Fact]
         public void DataBaseConfigToStringTest() {
             Write();
-            var actual = new Config(path, 0, "", 0, "", "").Database;
+            var actual = new Config(path, 0, "", 0, "").Database;
             Assert.Equal("mongodb://localhost:27017", actual.ToString());
         }
 

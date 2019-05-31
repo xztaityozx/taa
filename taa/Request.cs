@@ -11,14 +11,12 @@ namespace taa {
         public int Sweeps { get; set; }
         public int SeedStart { get; set; }
         public int SeedEnd { get; set; }
-        public List<string> Key { get; set; }
+        public List<string> Keys { get; set; }
 
-        public FilterDefinition<Record>[] FindFilterDefinitions(ObjectId id)
-            => Key.Select(key=> Builders<Record>.Filter.Where(r => 
+        public IEnumerable<FilterDefinition<Record>> FindFilterDefinitions(ObjectId id)
+            => Keys.Select(key=> Builders<Record>.Filter.Where(r => 
                 r.Seed <= SeedEnd && r.Seed >= SeedStart &&
                 r.ParameterId == id &&
                 r.Key == key)).ToArray();
-                
-                )
     }
 }
