@@ -76,13 +76,13 @@ namespace taa {
         [Option('s', "sigma", Required = false, Default  = 0.046, HelpText = "Vtn,Vtpのシグマです.個別設定が優先されます")]
         double Sigma { get; set; }
 
-        [Option( "host", Required = false, Default = "localhost", HelpText = "データベースのホスト名です")]
+        [Option( "host", Required = false,  HelpText = "データベースのホスト名です")]
         string Host { get; set; }
 
-        [Option('p', "port", Required = false, Default = 27017, HelpText = "データベースサーバーのポートです")]
+        [Option('p', "port", Required = false, HelpText = "データベースサーバーのポートです")]
         int Port { get; set; }
 
-        [Option("dataBaseName", Required = false, Default = "results", HelpText = "name of database")]
+        [Option("dataBaseName", Required = false,  HelpText = "name of database")]
         string DatabaseName { get; set; }
 
 

@@ -17,15 +17,13 @@ namespace taa {
             this.config = config;
             var client = new MongoClient(config.ToString());
             db = client.GetDatabase(config.DataBaseName);
-
+            
             var collections = db.ListCollectionNames().ToList();
-            if(!collections.Contains(ParameterCollectionName)) db.CreateCollection(ParameterCollectionName);
+            if (!collections.Contains(ParameterCollectionName)) db.CreateCollection(ParameterCollectionName);
             if (!collections.Contains(RecordCollectionName)) db.CreateCollection(RecordCollectionName);
         }
 
-        // TODO: Exception occured!!!!!!!!!!
         public IEnumerable<string> Push(Transistor vtn, Transistor vtp, int sweeps, Record[] records) {
-            var parameterCollection = db.GetCollection<Parameter>(ParameterCollectionName);
             var p = new Parameter {
                 Vtn = vtn,
                 Vtp = vtp,
@@ -34,18 +32,12 @@ namespace taa {
 
             yield return "Updating...";
 
-            var res = parameterCollection.FindOneAndUpdate(
-                Builders<Parameter>.Filter.Where(r =>
-                    r.Sweeps == sweeps && r.Vtn == p.Vtn && r.Vtp == p.Vtp),
-                Builders<Parameter>.Update
-                    .Set(r => r.Sweeps, p.Sweeps)
-                    .Set(r => r.Vtn, p.Vtn)
-                    .Set(r => r.Vtp, p.Vtp), new FindOneAndUpdateOptions<Parameter>{IsUpsert = true}
-            );
+            // パラメータを探す、なければInsert
 
-            p.Id = res.Id;
-            
+            p.Id = FindParameter(vtn, vtp, sweeps).Id;
 
+
+            // データをPushする
             yield return "Writing...";
             var recordCollection = db.GetCollection<Record>(RecordCollectionName);
             recordCollection.BulkWrite(
@@ -60,12 +52,28 @@ namespace taa {
             );
         }
 
-        public IEnumerable<Record> Pull(Request request, ChildProgressBar pb) {
-            var parameterCollection = db.GetCollection<Parameter>(ParameterCollectionName);
-            var id = parameterCollection.FindSync(
+        private Parameter FindParameter(Transistor vtn, Transistor vtp, int sweeps) {
+            var col = db.GetCollection<Parameter>(ParameterCollectionName);
+
+            return col.FindOneAndUpdate(
                 Builders<Parameter>.Filter.Where(r =>
-                    r.Sweeps == request.Sweeps && r.Vtn == request.Vtn && r.Vtp == request.Vtp)
-            ).ToList().First().Id;
+                    r.Sweeps == sweeps && r.Vtn == vtn && r.Vtp == vtp),
+                Builders<Parameter>.Update
+                    .Set(r => r.Sweeps, sweeps)
+                    .Set(r => r.Vtn, vtn)
+                    .Set(r => r.Vtp, vtp), new FindOneAndUpdateOptions<Parameter> {
+                    // Upsertを指定
+                    IsUpsert = true,
+                    // UpsertしたDocumentを返す（あとにIDが必要なため）
+                    ReturnDocument = ReturnDocument.After
+                }
+            );
+        }
+
+        private Parameter FindParameter(Request request) => FindParameter(request.Vtn, request.Vtp, request.Sweeps);
+
+        public IEnumerable<Record> Pull(Request request, IProgressBar pb) {
+            var id = FindParameter(request).Id;
 
             var recordCollection = db.GetCollection<Record>(RecordCollectionName);
             var tasks = request.FindFilterDefinitions(id)
@@ -73,11 +81,10 @@ namespace taa {
                     recordCollection.FindAsync(findFilterDefinition))
                 .ToList();
 
-            return Task.WhenAll(tasks).ContinueWith(t =>
-                    t.Result.SelectMany(k => {
-                        pb?.Tick();
-                        return k.ToList();
-                    }))
+            return Task.WhenAll(tasks).ContinueWith(t => {
+                    pb?.Tick();
+                    return t.Result.SelectMany(k => k.ToList());
+                })
                 .Result;
         }
     }
