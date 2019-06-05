@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -18,5 +17,7 @@ namespace taa {
                 r.Seed <= SeedEnd && r.Seed >= SeedStart &&
                 r.ParameterId == id &&
                 r.Key == key)).ToArray();
+
+        public int Size => (SeedEnd - SeedStart + 1) * Sweeps;
     }
 }

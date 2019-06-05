@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using ShellProgressBar;
 
 namespace taa {
@@ -8,8 +9,10 @@ namespace taa {
 
         public MultiProgressBar(string name) {
             parentBar = new ProgressBar(0, name, ConsoleColor.DarkGreen);
-            childBars=new Map<string, IProgressBar>();
+            childBars = new Map<string, IProgressBar>();
         }
+
+        public MultiProgressBar(IProgressBar parent) => parentBar = parent;
 
         public void AddProgressBar(string name, int maxTick) {
             parentBar.MaxTicks++;

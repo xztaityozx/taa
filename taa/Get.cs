@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using CommandLine;
+using Kurukuru;
 
 namespace taa {
-    public class Get :SubCommand {
-
-        [Value(0, Required = true, HelpText = "信号名[時間]で取り出す値を指定します")]
+    [Verb("get", HelpText = "数え上げます")]
+    public class Get : SubCommand {
         public IEnumerable<string> Request { get; set; }
 
         [Option("start", Default = 1, HelpText = "Seedの開始値です")]
@@ -18,19 +19,38 @@ namespace taa {
 
         public override bool Run() {
             LoadConfig();
-            var repo = new Repository(Config.Database);
-            var request = new Request
-            {
-                Keys = Request.Select(r => {
-                    var split = r.Split(new[] { "[", "]" }, StringSplitOptions.RemoveEmptyEntries);
-                    return Document.EncodeKey(split[0], Document.ParseDecimalWithSiUnit(split[1]));
-                }).ToList(),
+            var filter = new Filter(Config);
+
+            // 評価に使うデリゲートを作る
+            Spinner.Start("Building Filters...", spin => {
+                try {
+                    foreach (var s in filter.Build()) {
+                        spin.Text = s;
+                    }
+
+                    spin.Info("Finished");
+                }
+                catch (Exception e) {
+                    spin.Fail($"Failed: {e}");
+                    throw;
+                }
+            });
+            var request = new Request {
+                Keys = filter.KeyList.ToList(),
                 Sweeps = Sweeps,
                 Vtn = new Transistor(VtnVoltage, VtnSigma, VtnDeviation),
                 Vtp = new Transistor(VtpVoltage, VtpSigma, VtpDeviation),
                 SeedEnd = SeedEnd,
                 SeedStart = SeedStart
             };
+
+            var d = new Dispatcher(Config);
+            var cts = new CancellationTokenSource();
+            var res = d.Dispatch(cts.Token, request, filter);
+
+            foreach (var item in res) {
+                item.WL();
+            }
 
             return true;
         }

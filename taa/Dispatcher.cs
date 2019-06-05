@@ -1,27 +1,30 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Kurukuru;
-using YamlDotNet.Serialization;
+using ShellProgressBar;
 
 namespace taa {
     public class Dispatcher {
-        public long[] Dispatch(CancellationToken token, Request request, Config config) {
+        private readonly Config config;
+
+        public Dispatcher(Config config) => this.config = config;
+
+        public Tuple<string,long>[] Dispatch(CancellationToken token, Request request, Filter filter) {
             var expressionCount = config.Expressions.Count;
             var rt = new long[expressionCount];
-            var filter = new Filter(config);
 
-            // 評価に使うデリゲートを作る
-            Spinner.Start("Building Filters...", spin => {
+            IEnumerable<Record> records;
+            using (var pb = new ProgressBar(request.Size, "Pulling records from Database", ConsoleColor.DarkBlue)) {
+                var repo = new Repository(config.Database);
+                records = repo.Pull(request, pb).ToArray();
+            }
+
+            IEnumerable<Document> documents = null;
+            Spinner.Start("Generating documents...", spin => {
                 try {
-                    foreach (var s in filter.Build()) {
-                        spin.Text = s;
-                    }
-
+                    documents = Document.BuildDocuments(records);
                     spin.Info("Finished");
                 }
                 catch (Exception e) {
@@ -30,9 +33,26 @@ namespace taa {
                 }
             });
 
+            var size = records.Count();
+            
+            using (var mpb = new MultiProgressBar("Aggregating...")) {
+                foreach (var exp in filter.ExpressionStringList) {
+                    mpb.AddProgressBar(exp, records.Count());
+                }
+
+                documents.AsParallel()
+                    .WithCancellation(token)
+                    .WithDegreeOfParallelism(config.Parallel)
+                    .ForAll(item => {
+                        var res = filter.Aggregate(item, mpb);
+                        for (var i = 0; i < expressionCount; i++) {
+                            rt[i] += res[i];
+                        }
+                    });
+            }
 
 
-            return rt;
+            return filter.ExpressionStringList.Zip(rt, Tuple.Create).ToArray();
         }
     }
 }
