@@ -7,6 +7,7 @@ namespace taa {
     public abstract class SubCommand : ISubCommand {
         protected Config Config;
         protected Logger.Logger Logger;
+        protected Logger.Logger FileOnlyLogger;
 
         protected void LoadConfig() {
             ConfigFile = string.IsNullOrEmpty(ConfigFile)
@@ -30,6 +31,7 @@ namespace taa {
             ));
 
             Logger = new Logger.Logger(console, file);
+            FileOnlyLogger = new Logger.Logger(file);
 
             Logger.Info($"Loaded Config: {ConfigFile}");
         }

@@ -46,7 +46,7 @@ namespace taa {
 
             var d = new Dispatcher(Config);
             var cts = new CancellationTokenSource();
-            var res = d.Dispatch(cts.Token, request, filter);
+            var res = d.DispatchPulling(cts.Token, request, filter);
 
             foreach (var item in res) {
                 item.WL();

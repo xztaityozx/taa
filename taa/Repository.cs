@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using ShellProgressBar;
 
@@ -50,7 +51,22 @@ namespace taa {
             );
         }
 
-        private Parameter FindParameter(Transistor vtn, Transistor vtp, int sweeps) {
+        public void Push(ObjectId Id,  IEnumerable<Record> records) {
+            var col = db.GetCollection<Record>(RecordCollectionName);
+            col.BulkWrite(
+                records.Select(r => new UpdateOneModel<Record>(
+                    Builders<Record>.Filter.Where(k =>
+                        k.ParameterId == Id &&
+                        k.Key == r.Key &&
+                        k.Seed == r.Seed
+                    ),
+                    Builders<Record>.Update
+                        .Set(k => k.Values, r.Values)) {IsUpsert = true})
+            );
+            
+        }
+
+        public Parameter FindParameter(Transistor vtn, Transistor vtp, int sweeps) {
             var col = db.GetCollection<Parameter>(ParameterCollectionName);
 
             return col.FindOneAndUpdate(
