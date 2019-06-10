@@ -13,11 +13,13 @@ namespace taa {
         public List<string> Keys { get; set; }
 
         public IEnumerable<FilterDefinition<Record>> FindFilterDefinitions(ObjectId id)
-            => Keys.Select(key=> Builders<Record>.Filter.Where(r => 
-                r.Seed <= SeedEnd && r.Seed >= SeedStart &&
-                r.ParameterId == id &&
-                r.Key == key)).ToArray();
-
-        public int Size => (SeedEnd - SeedStart + 1) * Sweeps;
+            => Enumerable.Range(SeedStart, SeedEnd - SeedStart + 1)
+                .Select(seed => Builders<Record>.Filter.Where(r =>
+                    r.ParameterId == id &&
+                    Keys.Contains(r.Key) &&
+                    r.Seed >= seed
+                ));
+        
+        public int Size => (SeedEnd - SeedStart + 1)*Keys.Count;
     }
 }

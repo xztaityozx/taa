@@ -1,5 +1,8 @@
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -16,13 +19,16 @@ namespace taa {
             this.config = config;
             var client = new MongoClient(config.ToString());
             db = client.GetDatabase(config.DataBaseName);
-            
+
             var collections = db.ListCollectionNames().ToList();
             if (!collections.Contains(ParameterCollectionName)) db.CreateCollection(ParameterCollectionName);
             if (!collections.Contains(RecordCollectionName)) db.CreateCollection(RecordCollectionName);
         }
 
-        public IEnumerable<string> Push(Transistor vtn, Transistor vtp, int sweeps, Record[] records) {
+        public IEnumerable<string> Push(Transistor vtn, Transistor vtp, int sweeps, string file, int seed) {
+            yield return "Generating...";
+            var records = new Document(file, seed, sweeps).GenerateRecords(vtn, vtp);
+
             var p = new Parameter {
                 Vtn = vtn,
                 Vtp = vtp,
@@ -51,22 +57,12 @@ namespace taa {
             );
         }
 
-        public void Push(ObjectId Id,  IEnumerable<Record> records) {
+        public List<Record> Find(FilterDefinition<Record> f) {
             var col = db.GetCollection<Record>(RecordCollectionName);
-            col.BulkWrite(
-                records.Select(r => new UpdateOneModel<Record>(
-                    Builders<Record>.Filter.Where(k =>
-                        k.ParameterId == Id &&
-                        k.Key == r.Key &&
-                        k.Seed == r.Seed
-                    ),
-                    Builders<Record>.Update
-                        .Set(k => k.Values, r.Values)) {IsUpsert = true})
-            );
-            
+            return col.FindSync(f).ToList();
         }
 
-        public Parameter FindParameter(Transistor vtn, Transistor vtp, int sweeps) {
+        private Parameter FindParameter(Transistor vtn, Transistor vtp, int sweeps) {
             var col = db.GetCollection<Parameter>(ParameterCollectionName);
 
             return col.FindOneAndUpdate(
@@ -84,22 +80,6 @@ namespace taa {
             );
         }
 
-        private Parameter FindParameter(Request request) => FindParameter(request.Vtn, request.Vtp, request.Sweeps);
-
-        public IEnumerable<Record> Pull(Request request, IProgressBar pb) {
-            var id = FindParameter(request).Id;
-
-            var recordCollection = db.GetCollection<Record>(RecordCollectionName);
-            var tasks = request.FindFilterDefinitions(id)
-                .Select(findFilterDefinition =>
-                    recordCollection.FindAsync(findFilterDefinition))
-                .ToList();
-
-            return Task.WhenAll(tasks).ContinueWith(t => {
-                    pb?.Tick();
-                    return t.Result.SelectMany(k => k.ToList());
-                })
-                .Result;
-        }
+        public Parameter FindParameter(Request request) => FindParameter(request.Vtn, request.Vtp, request.Sweeps);
     }
 }

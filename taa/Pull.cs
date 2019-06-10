@@ -33,13 +33,10 @@ namespace taa {
             };
 
             var repo = new Repository(Config.Database);
-            IEnumerable<Record> response;
-            using (var pb = new ProgressBar((SeedEnd - SeedStart + 1) * Request.Count(), "Pulling...",
-                ConsoleColor.Cyan)) {
-                response = repo.Pull(request, pb);
-            }
+//            IEnumerable<Record> response;
+//                response = repo.Pull(request);
             
-            response.WL();
+//            response.WL();
             
             return true;
         }

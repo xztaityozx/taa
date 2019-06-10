@@ -85,12 +85,10 @@ namespace Logger {
         public FileLogger(string file) {
             filePath = file;
             if (File.Exists(filePath)) return;
-            using(var f = File.Create(filePath));
+            using (var f = File.Create(filePath)) {
+                Console.WriteLine($"[Logger] : Created logfile {f.Name}");
+            }
         }
         
-    }
-
-    public class LoggerException : Exception {
-        public LoggerException(object message) :base(message.ToString()) {}
     }
 }

@@ -25,6 +25,12 @@ namespace taa {
             KeyList = new List<string>();
         }
 
+        public Document(IEnumerable<Record> records, int seed, int sweeps) :this(seed,sweeps) {
+            foreach (var r in records) {
+                Append(r.Key, r.Values);
+            }
+        }
+
         private void Append(string key, IReadOnlyList<decimal> values) {
             for (var i = 0; i < Sweeps; i++) {
                 dataMap[i][key] = values[i];
@@ -135,6 +141,6 @@ namespace taa {
 
             return map.Select(m => m.Value);
         }
-        
+
     }
 }
