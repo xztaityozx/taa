@@ -53,12 +53,11 @@ namespace taa {
             yield return "Finished";
         }
 
-        public long[] Aggregate(Document document, MultiProgressBar mpb) {
+        public long[] Aggregate(Document document) {
             var rt = new long[delegates.Count];
 
             foreach (var item in delegates.Select((pair, i) => new{n=pair.Key,d=pair.Value, i})) {
                 rt[item.i] = document.Count(map => item.d(map));
-                mpb.Tick(item.n);
             }
 
             return rt;

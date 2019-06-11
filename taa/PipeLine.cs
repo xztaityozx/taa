@@ -7,92 +7,154 @@ using System.Threading.Tasks;
 using ShellProgressBar;
 
 namespace taa {
-    public class PipeLine {
+    public class PipeLine :IDisposable {
         private readonly List<IPipeLineFilter> filters;
+        private readonly IProgressBar parentBar;
+        private readonly CancellationToken token;
 
-        public PipeLine() {
-            filters=new List<IPipeLineFilter>();
+        private readonly ProgressBarOptions childOption = new ProgressBarOptions {
+            ProgressCharacter = '>',
+            ForegroundColor = ConsoleColor.DarkCyan
+        };
+        
+        public PipeLine(CancellationToken token, int steps) {
+            filters = new List<IPipeLineFilter>();
+            this.token = token;
+            parentBar = new ProgressBar(steps, "Master");
         }
 
-        public void Add(IPipeLineFilter filter) {
-            filters.Add(filter);
+        public BlockingCollection<TResult> Add<TSource, TResult>(string name, int workers, IEnumerable<TSource> sources , int size, Func<TSource, TResult> filter) {
+            var pb = parentBar.Spawn(size, name, childOption);
+            var f = new PipeLineFilter<TSource, TResult>(
+                token, sources, pb, workers, filter
+            );
+
+            filters.Add(f);
+            return f.Results;
         }
 
+        public BlockingCollection<TResult> Add<TSource, TResult>(string name, int workers,
+            BlockingCollection<TSource> sources, int size, Func<TSource, TResult> filter) {
+            var f = new PipeLineFilter<TSource, TResult>(
+                token, sources, parentBar.Spawn(size, name, childOption), workers, filter
+            );
+
+            filters.Add(f);
+            return f.Results;
+        }
+
+        public void Add<TSource, TResult>(string name, int workers,
+            BlockingCollection<TSource> sources, int size, Action<TSource> action) {
+
+            var f = new PipeLineFilter<TSource, TSource>(
+                token, sources, parentBar.Spawn(size, name, childOption), workers, action
+            );
+            
+            filters.Add(f);
+        }
+
+
+        public void Invoke() {
+            filters.AsParallel()
+                .WithCancellation(token)
+                .WithDegreeOfParallelism(filters.Count)
+                .ForAll(f => f.Run());
+        }
+
+        public void Dispose() {
+            parentBar.Dispose();
+            foreach (var f in filters) {
+                f.Dispose();
+            }
+        }
     }
 
-    public interface IPipeLineFilter {
+    public interface IPipeLineFilter : IDisposable {
         void Run();
     }
 
     public class PipeLineFilter<TSource, TResult> : IPipeLineFilter {
-        private readonly BlockingCollection<TSource> sources;
-        public readonly BlockingCollection<TResult> Destination;
+        private readonly CancellationToken token;
+        public readonly BlockingCollection<TSource> sources;
+        public readonly BlockingCollection<TResult> Results;
+
         private readonly Func<TSource, TResult> filter;
         private readonly Action<TSource> outputAction;
-        public int Parallel { get; }
-        public string Name { get; }
-        private readonly Logger.Logger logger;
-        private readonly CancellationToken token;
+
+        public int ProcessedTasks { get; private set; }
+
+        private readonly IProgressBar bar;
+        private readonly int workers;
+
+        private bool IsLastFilter => filter == null && outputAction != null;
 
         public void Run() {
-
-            var tasks = new List<Task>();
-            for (var i = 0; i < Parallel; i++) {
+            var tasks = new List<Task<int>>();
+            for (var i = 0; i < workers; i++) {
                 tasks.Add(Task.Run(Worker, token));
             }
-            
-            logger.Info($"{Name}: {Parallel} worker running...");
-            Task.WhenAll(tasks);
-            Destination.CompleteAdding();
-            logger.Info($"{Name}: Finished");
+
+            ProcessedTasks = Task.WhenAll(tasks).Result.Sum();
+            Results.CompleteAdding();
         }
 
-        private void Worker() {
-            foreach (var source in sources) {
+        private int Worker() {
+            var rt = 0;
+            foreach (var source in sources.GetConsumingEnumerable()) {
                 if (IsLastFilter) outputAction(source);
-                else Destination.TryAdd(filter(source));
+                else {
+                    var res = filter(source);
+                    Results.Add(res, token);
+                }
+
+                bar.Tick();
+                rt++;
             }
+
+            return rt;
         }
 
+        public PipeLineFilter(CancellationToken token, IEnumerable<TSource> source, IProgressBar bar, int workers, Func<TSource,TResult> filter) :
+            this(token, bar, workers, filter) {
+            this.sources = new BlockingCollection<TSource>();
+            foreach (var s in source) {
+                sources.Add(s, token);
+            }
 
-        public PipeLineFilter(
-            BlockingCollection<TSource> sources,
-            BlockingCollection<TResult> destination,
-            string name,
-            int size,
-            Logger.Logger logger,
-            CancellationToken token
-        ) {
-            this.sources = sources;
-            this.Destination = destination;
-            Name = name;
-            this.logger = logger;
+            sources.CompleteAdding();
+        }
+
+        private PipeLineFilter(CancellationToken token, IProgressBar bar, int workers) {
             this.token = token;
-            Parallel = size;
+            Results = new BlockingCollection<TResult>();
+
+            this.bar = bar;
+            this.workers = workers;
         }
 
-        public PipeLineFilter(
-            Func<TSource, TResult> filter,
-            BlockingCollection<TSource> sources,
-            BlockingCollection<TResult> destination,
-            int size,
-            string name,
-            Logger.Logger logger,
-            CancellationToken token
-        ) :this(sources,destination,name,size,logger,token) {
+        private PipeLineFilter(CancellationToken token, IProgressBar bar,int workers, Func<TSource, TResult> filter) : this(token,
+            bar, workers) {
             this.filter = filter;
         }
-        
-        public PipeLineFilter(
-            BlockingCollection<TSource> sources,
-            Action<TSource> action,
-            string name,
-            Logger.Logger logger,
-            CancellationToken token
-        ):this(sources,null,name,1,logger,token) {
-            outputAction = action;
+
+        private PipeLineFilter(CancellationToken token, IProgressBar bar, int workers, Action<TSource> action) : this(token, bar,workers) {
+            this.outputAction = action;
         }
 
-        private bool IsLastFilter => outputAction != null && filter != null;
+        public PipeLineFilter(CancellationToken token, BlockingCollection<TSource> sources, IProgressBar bar, int workers,
+            Func<TSource, TResult> filter) : this(token, bar, workers, filter) {
+            this.sources = sources;
+        }
+
+        public PipeLineFilter(CancellationToken token, BlockingCollection<TSource> sources, IProgressBar bar,
+            int workers, Action<TSource> action) : this(token, bar, workers,action) {
+            this.sources = sources;
+        }
+
+        public void Dispose() {
+            sources?.Dispose();
+            Results?.Dispose();
+            bar?.Dispose();
+        }
     }
 }

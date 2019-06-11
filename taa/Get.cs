@@ -6,6 +6,7 @@ using System.Threading;
 using CommandLine;
 using Kurukuru;
 using MongoDB.Driver;
+using ShellProgressBar;
 
 namespace taa {
     [Verb("get", HelpText = "数え上げます")]
@@ -51,45 +52,26 @@ namespace taa {
             var repo = new Repository(Config.Database);
             var id = repo.FindParameter(request).Id;
 
-            using (var source = new BlockingCollection<FilterDefinition<Record>>()) {
-                foreach (var f in request.FindFilterDefinitions(id)) {
-                    source.TryAdd(f);
-                }
+            const int steps = 3;
+            var parallelPerStage = Parallel / steps;
 
-                using (var mpb = new MultiProgressBar("PipeLine"))
-                using (var secondQueue = new BlockingCollection<Record[]>())
-                using (var thirdQueue = new BlockingCollection<Document>())
-                using (var fourthQueue = new BlockingCollection<Tuple<string, long>[]>()) {
-                    var first = new PipeLineFilter<FilterDefinition<Record>, Record[]>(
-                        f => repo.Find(f).ToArray(),
-                        source,
-                        secondQueue,
-                        Parallel / 4,
-                        "Pulling records from database",
-                        Logger,
-                        cts.Token
-                    );
-                    var second = new PipeLineFilter<Record[], Document>(
-                        r => new Document(r, r.First().Seed, Sweeps),
-                        secondQueue,
-                        thirdQueue,
-                        Parallel / 4,
-                        "Building documents",
-                        Logger,
-                        cts.Token
-                    );
-                    var third = new PipeLineFilter<Document, Tuple<string, long>[]>(
-                        d => filter.Aggregate(d, mpb).Zip(filter.ExpressionStringList, (l, s) => Tuple.Create(s, l))
-                            .ToArray(),
-                        thirdQueue, fourthQueue,
-                        Parallel / 4, "Aggregating",
-                        Logger,
-                        cts.Token
-                    );
+            var source = Enumerable.Range(SeedStart, SeedEnd - SeedStart + 1).Select(seed =>
+                Tuple.Create(Builders<Record>.Filter.Where(
+                    r => r.Seed == seed && request.Keys.Contains(r.Key) && r.ParameterId == id), seed)
+            ).ToArray();
+            
+            using (var pipeline = new PipeLine(cts.Token, steps)) {
+                var first = pipeline.Add("Pulling records from database", parallelPerStage, source, source.Length,
+                    f => Tuple.Create(repo.Find(f.Item1), f.Item2));
 
-                }
+                var second = pipeline.Add("Building documents", parallelPerStage, first, source.Length,
+                    list => new Document(list.Item1, list.Item2, Sweeps));
+
+                var third = pipeline.Add("Aggregating", parallelPerStage, second, source.Length,
+                    document => filter.Aggregate(document)
+                        .Zip(filter.ExpressionStringList, Tuple.Create));
+                
             }
-
 
             return true;
         }
