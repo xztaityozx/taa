@@ -57,9 +57,11 @@ namespace taa {
             );
         }
 
-        public List<Record> Find(FilterDefinition<Record> f) {
+        public List<Record> Find(IEnumerable<string> keys,int seed , ObjectId id) {
             var col = db.GetCollection<Record>(RecordCollectionName);
-            return col.FindSync(f).ToList();
+            var tasks = keys.Select(key => col.FindAsync(Builders<Record>.Filter.Where(r => r.Key == key && r.ParameterId == id && r.Seed == seed))).ToList();
+
+            return Task.WhenAll(tasks).Result.SelectMany(item => item.ToList()).ToList();
         }
 
         private Parameter FindParameter(Transistor vtn, Transistor vtp, int sweeps) {

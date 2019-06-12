@@ -33,11 +33,10 @@ namespace taa {
             };
 
             var repo = new Repository(Config.Database);
-//            IEnumerable<Record> response;
-//                response = repo.Pull(request);
-            
-//            response.WL();
-            
+            IEnumerable<Record> response = repo.Find(request.Keys, SeedStart, repo.FindParameter(request).Id);
+
+            response.WL();
+
             return true;
         }
     }

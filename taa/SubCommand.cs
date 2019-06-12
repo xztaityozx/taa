@@ -34,6 +34,7 @@ namespace taa {
             FileOnlyLogger = new Logger.Logger(file);
 
             Logger.Info($"Loaded Config: {ConfigFile}");
+            Logger.Info($"Database info: {Config.Database}");
         }
 
         public abstract bool Run();
