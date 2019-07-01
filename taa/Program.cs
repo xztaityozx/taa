@@ -10,7 +10,10 @@ using ShellProgressBar;
 namespace taa {
     internal class Program {
         private static void Main(string[] args) {
-            var res = Parser.Default.ParseArguments<Push, Pull, Get>(args).MapResult(
+
+            var parser = Parser.Default;
+
+            var res = parser.ParseArguments<Push, Pull, Get>(args).MapResult(
                 (Push p) => p.Run(),
                 (Pull p) => p.Run(),
                 (Get g) => g.Run(),
@@ -18,8 +21,6 @@ namespace taa {
             );
 
             Console.ResetColor();
-            Console.WriteLine("Taa Finished");
-
             if (!res) Environment.Exit(1);
 
         }
