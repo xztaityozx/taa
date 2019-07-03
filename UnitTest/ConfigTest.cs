@@ -15,12 +15,12 @@ namespace UnitTest {
 expressions:
     - A&&B
     - A&&!B&&C
+logDir: ~/Test
 parallel: 10
 database: 
     host: localhost
     port: 27017
-    dbName: test
-    collectionName: result";
+    name: test";
         readonly string path = Path.Combine(Environment.CurrentDirectory, "test.yml");
 
         private void Write() {
@@ -46,6 +46,8 @@ database:
                     ["B"] = "N2[10.5n]<=0.7n",
                     ["C"] = "N3[17.5]<=0.1"
                 }.All(x => x.Value == actual.Conditions[x.Key]));
+            Assert.Equal(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Test"),
+                actual.LogDir);
         }
 
         [Fact]

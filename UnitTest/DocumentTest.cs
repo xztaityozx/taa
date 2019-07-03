@@ -36,12 +36,8 @@ namespace UnitTest {
 
         [Fact]
         public void ConstructTest2() {
-            const string str = @"#
-TIME , A , B , C
-# sweeps 1
-1.0E1 , 2 , 3 , 4
-2.0E1 , 5 , 6 , 7
-3.0E1 , 8 , 9 , 0";
+            const string str =
+                "#\nTIME , A , B , C\n# sweeps 1\n1.0E1 , 2 , 3 , 4\n2.0E1 , 5 , 6 , 7\n3.0E1 , 8 , 9 , 0";
             var p = Path.Combine(Environment.CurrentDirectory, "test.csv");
             using (var sw = new StreamWriter(p, false, Encoding.UTF8)) sw.WriteLine(str);
 
@@ -77,12 +73,8 @@ TIME , A , B , C
 
         [Fact]
         public void GenerateRecords() {
-            const string str = @"#
-TIME , A , B , C
-# sweeps 1
-1.0E1 , 2 , 3 , 4
-2.0E1 , 5 , 6 , 7
-3.0E1 , 8 , 9 , 0";
+            const string str = "#\nTIME , A , B , C\n# sweeps 1\n1.0E1 , 2 , 3 , 4\n2.0E1 , 5 , 6 , 7\n3.0E1 , 8 , 9 , 0";
+
             var p = Path.Combine(Environment.CurrentDirectory, "test.csv");
             using (var sw = new StreamWriter(p, false, Encoding.UTF8)) sw.WriteLine(str);
 
