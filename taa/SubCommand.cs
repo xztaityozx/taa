@@ -12,7 +12,7 @@ namespace taa {
         protected void LoadConfig() {
             ConfigFile = string.IsNullOrEmpty(ConfigFile)
                 ? Path.Combine(
-                    Environment.GetEnvironmentVariable("HOME"),
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
                     ".config",
                     "taa",
                     "config.yml"

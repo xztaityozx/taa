@@ -47,7 +47,7 @@ namespace taa {
             Database.Host = Set(host, d.Database.Host, s => !string.IsNullOrEmpty(s));
             Database.Port = Set(port, d.Database.Port, p => p >= 1024);
 
-            LogDir = taa.FilePath.Expand(d.LogDir);
+            LogDir = FilePath.Expand(d.LogDir);
         }
 
         private static T Set<T>(T a, T b, Func<T,bool> func) {

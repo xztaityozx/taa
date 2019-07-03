@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,91 +33,117 @@ namespace taa {
 
         public override bool Run() {
             LoadConfig();
-            var filter = new Filter(Config);
-
-            // 評価に使うデリゲートを作る
-            Spinner.Start("Building Filters...", spin => {
-                try {
-                    foreach (var s in filter.Build()) {
-                        spin.Text = s;
-                    }
-
-                    spin.Info("Finished building filters");
-                }
-                catch (Exception e) {
-                    spin.Fail($"Failed: {e}");
-                    throw;
-                }
-            });
-
-            // Id取得に使うrequest
-            var request = new Request {
-                Keys = filter.KeyList.ToList(),
-                Sweeps = Sweeps,
-                Vtn = new Transistor(VtnVoltage, VtnSigma, VtnDeviation),
-                Vtp = new Transistor(VtpVoltage, VtpSigma, VtpDeviation),
-                SeedEnd = SeedEnd,
-                SeedStart = SeedStart
-            };
-
-            // TODO: CancellationTokenSourceをごにょごにょしないとダメ
             var cts = new CancellationTokenSource();
+            using (cts) {
+                Console.CancelKeyPress += (sender, args) => { cts.Cancel(); };
+                Logger.Warn("Press 'Ctrl+C' to cancel");
 
-            var repo = new Repository(Config.Database);
-            var id = new ObjectId();
-            Spinner.Start("Find parameter id", () => { id = repo.FindParameter(request).Id; });
+                var filter = new Filter(Config);
 
-            Logger.Info($"Parameter Id: {id}");
-
-            const int steps = 3;
-
-            var source = Enumerable.Range(SeedStart, SeedEnd - SeedStart + 1).ToArray();
-            var size = source.Length;
-
-            PipeLine.PipeLineState status;
-            var result = new Map<string, long>();
-            using (var pipeline = new PipeLine(cts.Token, steps*size)) {
-                var first = pipeline.Add("Pulling records from database", PullParallel, source, 
-                    seed => Tuple.Create(repo.Find(request.Keys, seed, id), seed));
-
-                var second = pipeline.Add("Building documents", BuildParallel, first, size,
-                    list => new Document(list.Item1, list.Item2, Sweeps));
-
-                var third = pipeline.Add("Aggregating", AggregateParallel, second, size,
-                    document => filter.Aggregate(document)
-                        .Zip(filter.ExpressionStringList, Tuple.Create));
-
-                status = pipeline.Invoke(() => {
-                    foreach (var res in third.GetConsumingEnumerable()) {
-                        foreach (var (value, key) in res) {
-                            result[key] += value;
+                Logger.Info("Start building filters");
+                // 評価に使うデリゲートを作る
+                Spinner.Start("Building Filters...", spin => {
+                    try {
+                        foreach (var s in filter.Build()) {
+                            spin.Text = s;
                         }
+
+                        spin.Info("Finished building filters");
+                    }
+                    catch (Exception e) {
+                        spin.Fail($"Failed: {e}");
+                        throw;
                     }
                 });
-            }
 
-            switch (status) {
-                case PipeLine.PipeLineState.Completed:
-                    Logger.Info(status);
-                    foreach (var l in result) {
-                        l.WL();
-                    }
+                Logger.Info($"{filter.ExpressionStringList} filters was built");
 
-                    return true;
-                case PipeLine.PipeLineState.Canceled:
-                    Logger.Warn(status);
-                    return false;
-                case PipeLine.PipeLineState.Failed:
-                    Logger.Error(status);
-                    return false;
-                case PipeLine.PipeLineState.Unknown:
-                    Logger.Error(status);
-                    return false;
-                default:
-                    Logger.Throw("", new ArgumentOutOfRangeException());
-                    return false;
+                // Id取得に使うrequest
+                var request = new Request {
+                    Keys = filter.KeyList.ToList(),
+                    Sweeps = Sweeps,
+                    Vtn = new Transistor(VtnVoltage, VtnSigma, VtnDeviation),
+                    Vtp = new Transistor(VtpVoltage, VtpSigma, VtpDeviation),
+                    SeedEnd = SeedEnd,
+                    SeedStart = SeedStart
+                };
+
+                Logger.Info("Start find parameter id");
+
+                var repo = new Repository(Config.Database);
+                var id = new ObjectId();
+                Spinner.Start("Find parameter id", () => { id = repo.FindParameter(request).Id; });
+
+                Logger.Info($"Parameter Id: {id}");
+
+                const int steps = 3;
+
+                Logger.Info(request);
+
+                var source = Enumerable.Range(SeedStart, SeedEnd - SeedStart + 1).ToArray();
+                var size = source.Length;
+
+                PipeLine.PipeLineState status;
+                var result = new Map<string, long>();
+                using (var pipeline = new PipeLine(cts.Token, steps * size)) {
+                    var first = pipeline.Add("Pulling records from database", PullParallel, source,
+                        seed => Tuple.Create(repo.Find(request.Keys, seed, id), seed));
+
+                    Logger.Info("Added first stage: pull records");
+
+                    var second = pipeline.Add("Building documents", BuildParallel, first, size,
+                        list => new Document(list.Item1, list.Item2, Sweeps));
+
+                    Logger.Info("Added second stage: record => document");
+
+                    var third = pipeline.Add("Aggregating", AggregateParallel, second, size,
+                        document => filter.Aggregate(document)
+                            .Zip(filter.ExpressionStringList, Tuple.Create));
+
+                    Logger.Info("Added third stage: document => failures");
+
+                    Logger.Info("Start pipeline task");
+                    var sw = new Stopwatch();
+                    sw.Start();
+                    status = pipeline.Invoke(() => {
+                        foreach (var res in third.GetConsumingEnumerable()) {
+                            foreach (var (value, key) in res) {
+                                result[key] += value;
+                            }
+                        }
+                    });
+                    sw.Stop();
+                    Logger.Info($"Elapsed time: {sw.Elapsed}");
+                }
+
+                switch (status) {
+                    case PipeLine.PipeLineState.Completed:
+                        Logger.Info(status);
+
+                        foreach (var (k, v) in Config.Conditions) {
+                            Logger.Info($"{k}: {v}");
+                        }
+
+                        Logger.Success("Taa results");
+                        foreach (var (k, v) in result) {
+                            $"{k}: {v}".WL();
+                        }
+
+                        return true;
+                    case PipeLine.PipeLineState.Canceled:
+                        Logger.Warn(status);
+                        return false;
+                    case PipeLine.PipeLineState.Failed:
+                        Logger.Error(status);
+                        return false;
+                    case PipeLine.PipeLineState.Unknown:
+                        Logger.Error(status);
+                        return false;
+                    default:
+                        Logger.Throw("", new ArgumentOutOfRangeException());
+                        return false;
+                }
             }
         }
-
     }
 }

@@ -21,5 +21,14 @@ namespace taa {
                 ));
         
         public int Size => (SeedEnd - SeedStart + 1)*Keys.Count;
+
+        public override string ToString() {
+            return $@"Vtn: {Vtn}
+Vtp: {Vtp}
+Sweeps: {Sweeps}
+Seed:
+    Start: {SeedStart}
+    End:   {SeedEnd}";
+        }
     }
 }

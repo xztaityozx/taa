@@ -19,7 +19,8 @@ namespace Logger {
             ConsoleColor.DarkYellow,
             ConsoleColor.Red,
             ConsoleColor.DarkRed,
-            ConsoleColor.DarkMagenta
+            ConsoleColor.DarkMagenta,
+            ConsoleColor.DarkGreen,
         };
 
         public Logger(params ILogWriter[] writers) : this(LogLevel.Info, writers){}
@@ -52,6 +53,10 @@ namespace Logger {
         public void Warn(object message) {
             Write(LogLevel.Warn, message);
         }
+
+        public void Success(object message) {
+            Write(LogLevel.Result, message);
+        }
     }
     
     public enum LogLevel{
@@ -59,7 +64,8 @@ namespace Logger {
         Warn,
         Error,
         Throw,
-        Fatal
+        Fatal,
+        Result
     }
 
     public interface ILogWriter {

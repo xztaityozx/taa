@@ -34,8 +34,8 @@ namespace taa {
             parentBar = new ProgressBar(total, "Master", new ProgressBarOptions {
                 ForegroundColor = ConsoleColor.DarkGreen,
                 BackgroundColor = ConsoleColor.DarkGray,
-                ProgressCharacter = '█',
-                BackgroundCharacter = '▒'
+                ProgressCharacter = '=',
+                BackgroundCharacter = '-'
             });
         }
 

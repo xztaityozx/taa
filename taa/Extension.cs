@@ -16,10 +16,10 @@ namespace taa {
 
     public static class FilePath {
         public static string Expand(string path) {
-            var split = path.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+            var split = path.Split(Path.DirectorySeparatorChar);
             if (split[0] != "~") return Path.GetFullPath(path);
-            
-            split[0] = Environment.GetEnvironmentVariable("HOME");
+
+            split[0] = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             path = Path.Combine(split);
 
             return Path.GetFullPath(path);
