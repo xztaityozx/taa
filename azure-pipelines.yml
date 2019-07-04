@@ -7,7 +7,7 @@ trigger:
 - master
 
 jobs:
-- job: "Linux"
+- job: "Linux_x64"
   pool:
     vmImage: 'ubuntu-16.04'
 
@@ -29,4 +29,26 @@ jobs:
         ArtifactName: 'Linux'
         publishLocation: 'Container'
         TargetPath: "./taa/taa.csproj"
-    
+- job: "Windows_x64"
+  pool:
+    vmImage: "windows-2019"
+
+  steps:
+    - task: DotNetCoreCLI@2
+      displayName: "unit tests"
+      inputs:
+        command: test
+        projects: '**/*Test/*.csproj'
+    - task: DotNetCoreCLI@2
+      inputs:
+        command: 'publish'
+        publishWebProjects: false
+        projects: './taa/taa.csproj'
+        arguments: '-c Release -r win-x64 --self-contained true --output $(Build.ArtifactStagingDirectory)'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'Windows'
+        publishLocation: 'Container'
+        TargetPath: "./taa/taa.csproj"
+  
