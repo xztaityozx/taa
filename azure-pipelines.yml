@@ -6,20 +6,22 @@
 trigger:
 - master
 
-pool:
-  vmImage: 'ubuntu-16.04'
+jobs:
+- job: "Linux"
+  pool:
+    vmImage: 'ubuntu-16.04'
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
-- script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
-
-- task: DotNetCoreCLI@2
-  inputs:
-    command: test
-    projects: '**/*Test/*.csproj'
-    arguments: '--configuration $(buildConfiguration)'
+  steps:
+    - task: DotNetCoreCLI@2
+      displayName: "unit tests"
+      inputs:
+        command: test
+        projects: '**/*Test/*.csproj'
+    - task: DotNetCoreCLI@2
+      displayName: "dotnet publish for linux-x64"
+      inputs:
+        command: 'publish'
+        publishWebProjects: false
+        projects: './taa/taa.csproj'
+        arguments: '-c Release -f linux-x64 --self-contained true --output $(Build.ArtifactStagingDirectory)'
+    
