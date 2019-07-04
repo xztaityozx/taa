@@ -1,29 +1,27 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Data;
-using System.Diagnostics;
-using System.Globalization;
-using System.IO;
 using System.Linq;
-using System.Net.Mime;
-using DynamicExpresso;
-using NLua;
-using YamlDotNet.Serialization;
-using YamlDotNet.Serialization.NamingConventions;
+using System.Threading;
+using CommandLine;
+using Logger;
+using MongoDB.Driver;
+using ShellProgressBar;
 
 namespace taa {
     internal class Program {
         private static void Main(string[] args) {
-            const string dir = @"C:\Users\xztaityozx\source\repos\taa\taa\test\m8d";
-            var signals = new[] { "m8d" };
 
-            var sw = new Stopwatch();
-            sw.Start();
+            var parser = Parser.Default;
 
-            var r = WvCsvParser.Parse(dir, signals, 2000, 5000, 20);
+            var res = parser.ParseArguments<Push, Pull, Get>(args).MapResult(
+                (Push p) => p.Run(),
+                (Pull p) => p.Run(),
+                (Get g) => g.Run(),
+                err => false
+            );
 
-            Console.WriteLine($"Record.Size: {r.Size}, WcCsvParser.Parse: {sw.ElapsedMilliseconds}ms");
+            Console.ResetColor();
+            if (!res) Environment.Exit(1);
         }
 
     }

@@ -1,107 +1,66 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
-using YamlDotNet.Serialization;
+using DynamicExpresso;
 
 namespace taa {
-    public class Config {
-        /// <summary>
-        /// 評価式のリスト
-        /// </summary>
-        [YamlMember(Alias = "conditions")]
-        public Dictionary<string, string> ConditionList { get; }
-
-        /// <summary>
-        /// 数え上げ対象の評価式のリスト
-        /// </summary>
-        [YamlMember(Alias = "targets")]
-        public List<string> TargetList { get; }
-
-        /// <summary>
-        /// 答え
-        /// </summary>
-        [YamlMember(Alias = "answer")]
-        public string Answer { get; }
-    }
-
+    using FilterFuncType = Func<Map<string,decimal>, bool>;
     public class Filter {
+        private Map<string, FilterFuncType> delegates;
+        public IEnumerable<string> ExpressionStringList => config.Expressions;
+        public IReadOnlyList<string> KeyList;
         private readonly Config config;
-
         public Filter(Config config) {
             this.config = config;
-            variables = new Map<string, Tuple<string, decimal>>();
-            expressionMap = new Map<string, Func<decimal, bool>>();
-            targetExpressionList = new List<string[]>();
-            answerExpression=new List<string>();
-
-            Build();
         }
 
-        private readonly Map<string, Tuple<string, decimal>> variables;
-        private readonly Map<string, Func<decimal, bool>> expressionMap;
+        public IEnumerable<string> Build() {
+            var kl =new List<string>();
+            
+            yield return "Loading Conditions...";
 
-        private readonly List<string[]> targetExpressionList;
-        private readonly List<string> answerExpression;
-
-        private void Build() {
-            foreach (var (k, v) in config.ConditionList) {
-                var (s, t, f) = ParseExpression(v);
-                variables[k] = Tuple.Create(s, t);
-                expressionMap[k] = f;
+            var dic = new Dictionary<string, string>();
+            foreach (var (key, value) in config.Conditions) {
+                var split = value.Split(new[] {"[", "]"}, StringSplitOptions.RemoveEmptyEntries);
+                var k = Document.EncodeKey(split[0], Document.ParseDecimalWithSiUnit(split[1]));
+                kl.Add(k);
+                var op = split[2].Substring(0, 2);
+                if (!new[] {"<=", ">=", "==", "!="}.Contains(op)) op = $"{split[2][0]}";
+                var v = Document.ParseDecimalWithSiUnit(split[2].Replace(op, ""));
+                // key = signal/time operator value
+                dic.Add(key, $"(map[\"{k}\"]{op}{v}M)");
             }
 
-            foreach (var item in config.TargetList) {
-                targetExpressionList.Add(item
-                    .Replace("&&", " and ")
-                    .Replace("||", " or ")
-                    .Replace("!", " not ")
+            KeyList = kl;
+
+            yield return "Generating Delegates...";
+
+            delegates = new Map<string, FilterFuncType>();
+            foreach (var value in config.Expressions) {
+                var exp = string.Join("", value.Replace("&&", " && ")
+                    .Replace("||", " || ")
                     .Replace("(", " ( ")
                     .Replace(")", " ) ")
-                    .Split(' ', StringSplitOptions.RemoveEmptyEntries));
+                    .Replace("!", " ! ")
+                    .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => dic.ContainsKey(s) ? dic[s] : s));
+
+                var itr = new Interpreter();
+                var d = itr.ParseAsDelegate<FilterFuncType>(exp, "map");
+                delegates.Add(value,d);
             }
-            
-            answerExpression.AddRange(
-                new[] {"+", "-", "*", "/", "(", ")"}
-                .Aggregate(config.Answer, (current, ope) => current.Replace(ope, $" {ope} "))
-                .Split(' '));
+
+            yield return "Finished";
         }
 
-        private readonly char[] delimiter = {'[', ']'};
-        private readonly string[] expectOperator = {"<", "<=", ">", ">=", "!=", "=="};
+        public long[] Aggregate(Document document) {
+            var rt = new long[delegates.Count];
 
-        private Tuple<string, decimal, Func<decimal, bool>> ParseExpression(string exp) {
-            // exp := {SignalName}[{Time}{SiUnit}*]{Operator}{Value{SiUnit}*}
-            // SignalName := [a-zA-Z][a-zA-Z0-9]*
-            // Time := [0-9]+{.[0-9]+}?
-            // SiUnit := G,M,k,m,n,u,p
-            // Operator  := <,<=,>,>=,==,!=
-            var split = exp.Replace(" ", "").Split(delimiter);
-            var signalName = split[0];
-            var time = WvCsvParser.ParseDecimalWithSiUnit(split[1]);
-            Func<decimal, bool> expression;
-
-            {
-                // 演算子切り出し
-                string op;
-                if (expectOperator.Contains(split[2].Substring(0, 2))) op = split[2].Substring(0, 2);
-                else if (expectOperator.Contains(split[2].Substring(0, 1))) op = $"{split[2][0]}";
-                else {
-                    throw new Exception($"[Taa] Invalid Operator: {exp}");
-                }
-
-                var v = WvCsvParser.ParseDecimalWithSiUnit(split[2].Replace(op, ""));
-
-
-                if (op == expectOperator[0]) expression = d => d < v;
-                else if (op == expectOperator[1]) expression = d => d <= v;
-                else if (op == expectOperator[2]) expression = d => d > v;
-                else if (op == expectOperator[3]) expression = d => d >= v;
-                else if (op == expectOperator[4]) expression = d => d != v;
-                else expression = d => d == v;
+            foreach (var item in delegates.Select((pair, i) => new{n=pair.Key,d=pair.Value, i})) {
+                rt[item.i] = document.Count(map => item.d(map));
             }
 
-            return Tuple.Create(signalName, time, expression);
+            return rt;
         }
     }
 }

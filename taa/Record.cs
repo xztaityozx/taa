@@ -1,58 +1,30 @@
-﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Driver;
 
 namespace taa {
-    public class Record :IEnumerable<decimal[]> {
+    public class Record {
+        [BsonElement("_id")]
+        public ObjectId Id { get; set; }
+        [BsonElement("parameterId")]
+        public ObjectId ParameterId { get; set; }
 
-        // signal-time => index
-        private readonly Map<string, int> signalIndexMap = new Map<string, int>();
-        private readonly List<decimal[]> dataList = new List<decimal[]>();
+        public Transistor Vtn { get; set; }
+        public Transistor Vtp { get; set; }
+        [BsonElement("values")] public decimal[] Values { get; set; }
+        [BsonElement("seed")] public int Seed { get; set; }
+        public int Sweeps { get; set; }
+        [BsonElement("key")] public string Key { get; set; }
 
-        public Record(int seeds, int times, IEnumerable<Tuple<string,IEnumerable<decimal>>> keyList) {
-            var index = 0;
-            foreach (var (signal, timeSet) in keyList) {
-                    foreach (var time in timeSet) {
-                        var k = GenKeyString(signal, time);
-                        signalIndexMap[k] = index;
-                        index++;
-                }
-            }
-
-            for (var i = 0; i < seeds * times; i++) {
-                dataList.Add(new decimal[index]);
-            }
-        }
-
-        public static string GenKeyString(string signal, decimal time) => $"{signal}-{time:E10}";
-
-        public decimal this[int index, string signal, decimal time] {
-            get {
-                var k = signalIndexMap[GenKeyString(signal, time)];
-                return dataList[index][k];
-            }
-            set {
-                var k = signalIndexMap[GenKeyString(signal, time)];
-                dataList[index][k] = value;
-            }
-        }
-
-        public IEnumerator<decimal[]> GetEnumerator() {
-            return dataList.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator() {
-            return GetEnumerator();
-        }
-
+       
         public override string ToString() {
-            var sb = new StringBuilder();
-
-            sb.AppendLine($"Index, {string.Join(", ", signalIndexMap.Keys)}");
-
-            return sb.ToString();
+            return
+                $" Signal/Time: {Key}, Seed: {Seed}";
         }
+
+        public FilterDefinition<Record> UpdateFindFilter()
+            => Builders<Record>.Filter.Where(r => 
+                r.ParameterId == ParameterId && r.Seed == Seed && r.Key == Key);
     }
 }
