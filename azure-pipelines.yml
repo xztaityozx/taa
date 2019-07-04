@@ -18,10 +18,14 @@ jobs:
         command: test
         projects: '**/*Test/*.csproj'
     - task: DotNetCoreCLI@2
-      displayName: "dotnet publish for linux-x64"
       inputs:
-        command: 'publish'
-        publishWebProjects: false
+        command: 'build'
         projects: './taa/taa.csproj'
-        arguments: '-c Release -r linux-x64 --self-contained true --output $(Build.ArtifactStagingDirectory)'
+        arguments: '-c Release -r linux-x64'
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
+        TargetPath: "./taa/taa.csproj"
     
