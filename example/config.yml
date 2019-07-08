@@ -1,0 +1,13 @@
+conditions:
+  A: "n1[2.5n]>=0.4"
+  B: "n1[10n]>=0.4"
+  C: "n1[17.5n]>=0.4"
+expressions:
+  - "A&&B&&C"
+parallel: 10
+logDir: ~/TestDir/Log
+database: 
+  host: 150.89.227.255
+  port: 27017
+  name: test
+
