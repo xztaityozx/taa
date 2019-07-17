@@ -19,11 +19,8 @@ namespace taa {
             }
         }
 
-        [BsonElement("voltage")]
         public decimal Voltage { get; set; }
-        [BsonElement("sigma")]
         public decimal Sigma { get; set; }
-        [BsonElement("deviation")]
         public decimal Deviation { get; set; }
 
         public Transistor(double v, double s, double d) {
@@ -33,7 +30,7 @@ namespace taa {
         }
         
         public override string ToString() {
-            return $"[ Voltage: {Voltage}, Sigma: {Sigma}, Deviation: {Deviation} ]";
+            return $"[ voltage: {Voltage}, sigma: {Sigma}, deviation: {Deviation} ]";
         }
 
         public static  bool operator ==(Transistor s, Transistor t) {

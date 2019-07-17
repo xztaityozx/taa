@@ -76,7 +76,7 @@ namespace taa {
         [Option("vtpDeviation", Required = false, Default = 1.0, HelpText = "Vtpの偏差です")]
         double VtpDeviation { get; set; }
 
-        [Option('s', "sigma", Required = false, Default  = 0.046, HelpText = "Vtn,Vtpのシグマです.個別設定が優先されます")]
+        [Option('s', "sigma", Required = false, Default  = -1.0, HelpText = "Vtn,Vtpのシグマです.個別設定が優先されます")]
         double Sigma { get; set; }
 
         [Option( "host", Required = false,  HelpText = "データベースのホスト名です")]
@@ -92,7 +92,7 @@ namespace taa {
         [Option("sweeps", Required = false, Default = 5000, HelpText = "number of sweeps")]
         int Sweeps { get; set; }
         
-        [Option("parallel", Default = 10, HelpText = "並列実行数です")]
+        [Option("parallel", Default = -1, HelpText = "並列実行数です")]
         int Parallel { get; set; }
    }
 }
