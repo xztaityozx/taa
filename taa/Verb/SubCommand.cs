@@ -3,42 +3,13 @@ using System.IO;
 using CommandLine;
 using Logger;
 
-namespace taa {
+namespace taa.Verb {
     public abstract class SubCommand : ISubCommand {
-        protected Config Config;
+        protected Config.Config Config;
         protected Logger.Logger Logger;
-        protected Logger.Logger FileOnlyLogger;
-
-        protected void LoadConfig() {
-            ConfigFile = string.IsNullOrEmpty(ConfigFile)
-                ? Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    ".config",
-                    "taa",
-                    "config.yml"
-                )
-                : ConfigFile;
-            
-            if(File.Exists(ConfigFile)) Config = new Config(ConfigFile, Parallel, Host, Port, DatabaseName);
-            else {
-                new Logger.Logger(new ConsoleLogger()).Throw("Config file not found.", new FileNotFoundException("", ConfigFile));
-            }
-
-            var console = new ConsoleLogger();
-            var file=new FileLogger(Path.Combine(
-                Config.LogDir,
-                DateTime.Now.ToString("yyyy-MM-dd-HH-mm-ss")+".log"
-            ));
-
-            Logger = new Logger.Logger(console, file);
-            FileOnlyLogger = new Logger.Logger(file);
-
-            Logger.Info($"Loaded Config: {ConfigFile}");
-            Logger.Info($"Database info: {Config.Database}");
-        }
-
         public abstract bool Run();
 
+        public abstract void Bind();
         public string ConfigFile { get; set; }
         public double VtnVoltage { get; set; }
         public double VtnSigma { get; set; }
@@ -49,10 +20,7 @@ namespace taa {
         public double Sigma { get; set; }
         public string Host { get; set; }
         public int Port { get; set; }
-        public string DatabaseName { get; set; }
         public int Sweeps { get; set; }
-        public int Parallel { get; set; }
-        public bool Suppress { get; set; }
     }
     public interface ISubCommand {
         [Option("config", Required = false, HelpText = "コンフィグファイルへのパスです")]
@@ -79,20 +47,7 @@ namespace taa {
         [Option('s', "sigma", Required = false, Default  = -1.0, HelpText = "Vtn,Vtpのシグマです.個別設定が優先されます")]
         double Sigma { get; set; }
 
-        [Option( "host", Required = false,  HelpText = "データベースのホスト名です")]
-        string Host { get; set; }
-
-        [Option('p', "port", Required = false, HelpText = "データベースサーバーのポートです")]
-        int Port { get; set; }
-
-        [Option("dataBaseName", Required = false,  HelpText = "name of database")]
-        string DatabaseName { get; set; }
-
-
         [Option("sweeps", Required = false, Default = 5000, HelpText = "number of sweeps")]
         int Sweeps { get; set; }
-        
-        [Option("parallel", Default = -1, HelpText = "並列実行数です")]
-        int Parallel { get; set; }
-   }
+    }
 }

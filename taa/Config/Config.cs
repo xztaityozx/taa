@@ -1,70 +1,50 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Castle.DynamicProxy.Generators.Emitters.SimpleAST;
+using taa.Extension;
 using YamlDotNet.Serialization;
 
-namespace taa {
-    public class Config {
-        /// <summary>
-        /// è©•ä¾¡å¼ã®ãƒªã‚¹ãƒˆ
-        /// </summary>
+namespace taa.Config {
+    public sealed class Config {
         [YamlMember(Alias = "conditions")]
         public Dictionary<string, string> Conditions { get; set; }
-
-        /// <summary>
-        /// æ•°ãˆä¸Šã’å¯¾è±¡ã®è©•ä¾¡å¼ã®ãƒªã‚¹ãƒˆ
-        /// </summary>
         [YamlMember(Alias = "expressions")]
         public List<string> Expressions { get; set; }
-
-        /// <summary>
-        /// ä¸¦åˆ—æ•°
-        /// </summary>
-        [YamlMember(Alias = "parallel")]
-        public int Parallel { get; set; }
-
-        [YamlMember(Alias = "database")]
-        public DatabaseConfig Database { get; set; }
-
         [YamlMember(Alias = "logDir")]
         public string LogDir { get; set; }
+        [YamlMember(Alias = "connection")]
+        public string ConnectionsString { get; set; }
 
         public Config() { }
 
-        public Config(string path, int parallel, string host, int port, string dbName) {
-            string str;
-            using (var sr = new StreamReader(path)) {
-                str = sr.ReadToEnd();
-            }
+        private static Config instance;
 
-            var d = new Deserializer().Deserialize<Config>(str);
+        public static Config GetInstance(string path = "") {
+                if (instance != null) return instance;
+                if (string.IsNullOrEmpty(path)) throw new NullReferenceException("ƒRƒ“ƒtƒBƒOƒtƒ@ƒCƒ‹‚Ö‚ÌƒpƒX‚ª–¢İ’è‚Å‚·");
 
-            Conditions = d.Conditions;
-            Expressions = d.Expressions;
-            Parallel = Set(parallel, d.Parallel, p => p != 0);
-            Database = d.Database;
-            Database.DataBaseName = Set(dbName, d.Database.DataBaseName, s => !string.IsNullOrEmpty(s));
-            Database.Host = Set(host, d.Database.Host, s => !string.IsNullOrEmpty(s));
-            Database.Port = Set(port, d.Database.Port, p => p >= 1024);
+                path = FilePath.Expand(path);
 
-            LogDir = FilePath.Expand(d.LogDir);
+                string str;
+                try {
+                    using (var sr = new StreamReader(path)) str = sr.ReadToEnd();
+                }
+                catch (FileNotFoundException) {
+                    throw new FileNotFoundException($"ƒRƒ“ƒtƒBƒOƒtƒ@ƒCƒ‹‚ªŒ©‚Â‚©‚è‚Ü‚¹‚ñ: {path}");
+                }
+
+                try {
+                    instance = new Deserializer().Deserialize<Config>(str);
+                }
+                catch (Exception) {
+                    Console.Error.WriteLine("ƒRƒ“ƒtƒBƒOƒtƒ@ƒCƒ‹‚Ìƒp[ƒX‚É¸”s‚µ‚Ü‚µ‚½");
+                    throw;
+                }
+
+                instance.LogDir = FilePath.Expand(instance.LogDir);
+
+                return instance;
         }
-
-        private static T Set<T>(T a, T b, Func<T,bool> func) {
-            return func(a) ? a : b;
-        }
-    }
-
-    public class DatabaseConfig {
-        [YamlMember(Alias = "host")]
-        public string Host { get; set; }
-        [YamlMember(Alias = "port")]
-        public int Port { get; set; }
-        [YamlMember(Alias = "name")]
-        public string DataBaseName { get; set; }
-        [YamlMember(Alias="user")]
-        public string User { get; set; }
-        [YamlMember(Alias = "password")]
-        public string Password { get; set; }
     }
 }

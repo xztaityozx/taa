@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace taa {
+namespace taa.Extension {
     public static class Extension {
         public static void WL<T>(this IEnumerable<T> @this) {
             foreach (var item in @this) {
@@ -19,10 +19,12 @@ namespace taa {
             var split = path.Split('\\', '/');
             if (split[0] != "~") return Path.GetFullPath(path);
 
-            split[0] = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            split[0] = GetHome();
             path = Path.Combine(split);
 
             return Path.GetFullPath(path);
         }
+
+        public static string GetHome() => Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
     }
 }

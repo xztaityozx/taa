@@ -1,11 +1,7 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using CommandLine;
-using MongoDB.Driver.Linq;
-using ShellProgressBar;
 
-namespace taa {
+namespace taa.Verb {
     [Verb("pull", HelpText = "DBからデータを取り出します")]
     public class Pull :SubCommand {
         
@@ -19,9 +15,12 @@ namespace taa {
         public int SeedEnd { get; set; }
         
         public override bool Run() {
-            LoadConfig();
             
             return true;
+        }
+
+        public override void Bind() {
+            throw new System.NotImplementedException();
         }
     }
 }

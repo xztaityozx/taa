@@ -19,7 +19,6 @@ namespace taa.Repository {
     }
     
     public class PgSqlDbContext: DbContext {
-       
         /// <summary>
         /// コンストラクタ
         /// </summary>
@@ -35,14 +34,13 @@ namespace taa.Repository {
 
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             // 主キーはParameterとSweep
-            modelBuilder.Entity<RecordModel>().HasKey(e => new {e.Parameter, e.Sweep});
+            modelBuilder.Entity<RecordModel>().HasKey(e => new {e.Parameter, e.Sweep, e.Key});
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder ob) {
             // Dbの設定
-            // TODO: ここ実装しろ
-            ob.UseNpgsql();
-            
+            ob.UseNpgsql(Config.Config.GetInstance().ConnectionsString);
+
             // 遅延ロードプロキシーを有効化する
             ob.UseLazyLoadingProxies();
         }

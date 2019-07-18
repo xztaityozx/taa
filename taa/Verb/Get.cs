@@ -1,18 +1,6 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using CommandLine;
-using Kurukuru;
-using Logger;
-using MongoDB.Bson;
-using MongoDB.Driver;
-using ShellProgressBar;
+﻿using CommandLine;
 
-namespace taa {
+namespace taa.Verb {
     [Verb("get", HelpText = "数え上げます")]
     public class Get : SubCommand {
 
@@ -32,8 +20,11 @@ namespace taa {
         public int AggregateParallel { get; set; }
 
         public override bool Run() {
-            LoadConfig();
             return true;
+        }
+
+        public override void Bind() {
+            throw new System.NotImplementedException();
         }
     }
 }

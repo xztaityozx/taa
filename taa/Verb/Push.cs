@@ -1,17 +1,6 @@
-using System;
-using System.Collections;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using CommandLine;
-using Kurukuru;
-using MongoDB.Driver;
-using MongoDB.Driver.Linq;
 
-namespace taa {
+namespace taa.Verb {
     [Verb("push", HelpText = "DBにデータをPushします")]
     public class Push : SubCommand {
         [Value(0, Required = true, HelpText = "入力ファイルです", MetaName = "input")]
@@ -21,9 +10,12 @@ namespace taa {
         public int Seed { get; set; }
 
         public override bool Run() {
-            LoadConfig();
-
+            
             return true;
+        }
+
+        public override void Bind() {
+            throw new System.NotImplementedException();
         }
 
         public override string ToString() {

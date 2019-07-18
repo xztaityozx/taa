@@ -4,8 +4,8 @@ using System.Linq;
 using System.Threading;
 using CommandLine;
 using Logger;
-using MongoDB.Driver;
 using ShellProgressBar;
+using taa.Verb;
 
 namespace taa {
     internal class Program {

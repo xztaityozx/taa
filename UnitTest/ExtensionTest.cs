@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using taa;
+using taa.Extension;
 using Xunit;
 
 namespace UnitTest
