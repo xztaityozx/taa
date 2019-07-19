@@ -21,7 +21,9 @@ namespace UnitTest {
 
         [Fact]
         public void ConstructorTest() {
-            var actual = new Parameter(0.1, 0.2, 0.3, 1, 2, 3, 5, "signal", 7M);
+            var actual = new Parameter(
+                new Transistor(0.1, 0.2, 0.3), 
+                new Transistor(1, 2, 3), 5, "signal", 7M);
             Assert.Equal(new Transistor(0.1, 0.2, 0.3), actual.Vtn);
             Assert.Equal(new Transistor(1, 2, 3), actual.Vtp);
             Assert.Equal(new Transistor(0.1, 0.2, 0.3), actual.Vtn);

@@ -22,12 +22,20 @@ namespace taa.Factory {
 
             string doc;
             using (var sr = new StreamReader(path)) doc = sr.ReadToEnd();
+            doc = doc.Trim(' ');
 
             var container = doc.Split("#", StringSplitOptions.RemoveEmptyEntries).Skip(1).ToList();
 
             // 信号名のリスト
-            var signals = container[0].Trim(' ').Split(",", StringSplitOptions.RemoveEmptyEntries).Skip(1).ToArray();
+            var signals = container[0].Split(",", StringSplitOptions.RemoveEmptyEntries).Skip(1).ToArray();
 
+            var timeMap = new Map<string, decimal>();
+            foreach (var block in container.Skip(1)) {
+                var box = block.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var line in box) {
+                    var split = line.Split(",", StringSplitOptions.RemoveEmptyEntries);
+                }
+            }
 
             return rt;
         }

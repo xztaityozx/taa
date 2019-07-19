@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Castle.DynamicProxy.Generators.Emitters.SimpleAST;
 using taa.Extension;
 using YamlDotNet.Serialization;
 
@@ -22,7 +21,7 @@ namespace taa.Config {
 
         public static Config GetInstance(string path = "") {
                 if (instance != null) return instance;
-                if (string.IsNullOrEmpty(path)) throw new NullReferenceException("コンフィグファイルへのパスが未設定です");
+                if (string.IsNullOrEmpty(path)) throw new NullReferenceException("繝代せ縺瑚ｨｭ螳壹＆繧後※縺�縺ｾ縺帙ｓ");
 
                 path = FilePath.Expand(path);
 
@@ -31,14 +30,14 @@ namespace taa.Config {
                     using (var sr = new StreamReader(path)) str = sr.ReadToEnd();
                 }
                 catch (FileNotFoundException) {
-                    throw new FileNotFoundException($"コンフィグファイルが見つかりません: {path}");
+                    throw new FileNotFoundException($"繝輔ぃ繧､繝ｫ縺瑚ｦ九▽縺九ｊ縺ｾ縺帙ｓ: {path}");
                 }
 
                 try {
                     instance = new Deserializer().Deserialize<Config>(str);
                 }
                 catch (Exception) {
-                    Console.Error.WriteLine("コンフィグファイルのパースに失敗しました");
+                    Console.Error.WriteLine("繝代�ｼ繧ｹ縺ｧ縺阪∪縺帙ｓ縺ｧ縺励◆");
                     throw;
                 }
 
