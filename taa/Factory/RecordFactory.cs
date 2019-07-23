@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -13,7 +14,7 @@ namespace taa.Factory {
             double vtpThreshold, double vtpSigma, double vtpDeviation,
             int seed, int sweeps
         ) {
-            var rt = new RecordModel[sweeps];
+            var rt = new List<RecordModel>();
 
             var param = new Parameter.Parameter(
                 vtn: new Transistor(vtnThreshold, vtnSigma, vtnThreshold),
@@ -29,15 +30,29 @@ namespace taa.Factory {
             // 信号名のリスト
             var signals = container[0].Split(",", StringSplitOptions.RemoveEmptyEntries).Skip(1).ToArray();
 
-            var timeMap = new Map<string, decimal>();
-            foreach (var block in container.Skip(1)) {
-                var box = block.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
-                foreach (var line in box) {
-                    var split = line.Split(",", StringSplitOptions.RemoveEmptyEntries);
-                }
-            }
+            container.Skip(1).AsParallel()
+                .WithDegreeOfParallelism(10)
+                .ForAll(block => {
+                    // ブロックを改行で分割
+                    var box = block.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
 
-            return rt;
+                    // 1行目は#sweep[num] [num]を取り出してsweep値とする
+                    var sweep = int.Parse(box[0].Replace("#sweep", ""));
+                    for (var i = 1; i < box.Length; i++) {
+                        var split = box[i].Split(",", StringSplitOptions.RemoveEmptyEntries)
+                            .Select(s => decimal.Parse(s, NumberStyles.Float)).ToArray();
+                        var time = split.First();
+                        for (var j = 1; j < split.Length; j++) {
+                            rt.Add(new RecordModel {
+                                Key = Parameter.Parameter.EncodeKey(signals[j - 1], time),
+                                Sweep = sweep,
+                                Value = split[j]
+                            });
+                        }
+                    }
+                });
+
+            return rt.ToArray();
         }
     }
 }
