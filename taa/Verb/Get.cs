@@ -1,4 +1,9 @@
-﻿using CommandLine;
+﻿using System.Linq;
+using CommandLine;
+using taa.Config;
+using taa.Extension;
+using taa.Factory;
+using taa.Repository;
 
 namespace taa.Verb {
     [Verb("get", HelpText = "数え上げます")]
@@ -20,11 +25,20 @@ namespace taa.Verb {
         public int AggregateParallel { get; set; }
 
         public override bool Run() {
+            var repo = new PgSqlRepository();
+            var param = new Parameter.Parameter(
+                VtnVoltage, VtnSigma, VtnDeviation,
+                VtpVoltage, VtpSigma, VtpDeviation
+            );
+            var records = repo.Get(param, r => SeedStart <= r.Seed && r.Seed <= SeedEnd);
+            var doc = new Document.Document(param, records, records.Max(x => x.Sweep));
+
+            doc.WL();
+
+            var filter = new Filter(Config.Config.GetInstance().Conditions, Config.Config.GetInstance().Expressions);
+            filter.Aggregate(doc).WL();
             return true;
         }
 
-        public override void Bind() {
-            throw new System.NotImplementedException();
-        }
     }
 }

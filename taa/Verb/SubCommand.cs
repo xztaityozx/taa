@@ -5,11 +5,13 @@ using Logger;
 
 namespace taa.Verb {
     public abstract class SubCommand : ISubCommand {
-        protected Config.Config Config;
         protected Logger.Logger Logger;
         public abstract bool Run();
 
-        public abstract void Bind();
+        protected void Bind() {
+            if ($"{Sigma}" != $"{-0.1}") VtnSigma = VtpSigma = Sigma;
+        }
+
         public string ConfigFile { get; set; }
         public double VtnVoltage { get; set; }
         public double VtnSigma { get; set; }

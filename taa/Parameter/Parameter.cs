@@ -5,17 +5,20 @@ namespace taa.Parameter {
     public class Parameter {
         public Transistor Vtn { get; }
         public Transistor Vtp { get; }
-        public int Seed { get; }
-        public string Key { get; }
 
         public Parameter(
-            Transistor vtn, Transistor vtp,
-            int seed, string signal, decimal time
+            Transistor vtn, Transistor vtp
         ) {
             Vtn = vtn;
             Vtp = vtp;
-            Seed = seed;
-            Key = EncodeKey(signal, time);
+        }
+
+        public Parameter(
+            double vtnThreshold, double vtnSigma, double vtnDeviation,
+            double vtpThreshold, double vtpSigma, double vtpDeviation
+        ) {
+            Vtn = new Transistor(vtnThreshold, vtnSigma, vtnDeviation);
+            Vtp = new Transistor(vtpThreshold, vtpSigma, vtpDeviation);
         }
 
         public static string EncodeKey(string signal, decimal time) => $"{signal}/{time:E10}";
@@ -26,7 +29,10 @@ namespace taa.Parameter {
         }
 
         public override string ToString() {
-            return $"vtn:{Vtn}_vtp:{Vtp}_seed:{Seed}";
+            return $"vtn:{Vtn}_vtp:{Vtp}";
         }
+
+        public string DatabaseName() =>
+            $"vtn:v{Vtn.Voltage}_s{Vtn.Sigma}_d{Vtn.Deviation}vtp:v{Vtp.Voltage}_s{Vtp.Sigma}_d{Vtp.Deviation}";
     }
 }

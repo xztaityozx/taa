@@ -29,7 +29,7 @@ namespace taa {
         }
         
         public override string ToString() {
-            return $"[ voltage: {Voltage}, sigma: {Sigma}, deviation: {Deviation} ]";
+            return $"voltage_{Voltage}_sigma_{Sigma}_deviation_{Deviation}";
         }
 
         public static  bool operator ==(Transistor s, Transistor t) {

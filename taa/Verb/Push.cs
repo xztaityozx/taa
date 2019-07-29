@@ -1,4 +1,8 @@
+using System.Linq;
 using CommandLine;
+using taa.Extension;
+using taa.Factory;
+using taa.Repository;
 
 namespace taa.Verb {
     [Verb("push", HelpText = "DBにデータをPushします")]
@@ -10,16 +14,17 @@ namespace taa.Verb {
         public int Seed { get; set; }
 
         public override bool Run() {
-            
+            var records = RecordFactory.BuildFromCsv(InputFile, Seed);
+            records.OrderBy(x=>x.Sweep).WL();
+            var param = new Parameter.Parameter(
+                VtnVoltage, VtnSigma, VtnDeviation,
+                VtpVoltage, VtpSigma, VtpDeviation
+            );
+
+            var repo = new PgSqlRepository();
+            repo.BulkWrite(param, records);
+
             return true;
-        }
-
-        public override void Bind() {
-            throw new System.NotImplementedException();
-        }
-
-        public override string ToString() {
-            return $"Host: {Host}, Port: {Port}";
         }
     }
 }

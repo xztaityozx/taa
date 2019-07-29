@@ -8,51 +8,51 @@ using taa.Model;
 
 namespace taa.Factory {
     public static class RecordFactory {
-        //TODO: ここ実装しろ
-        public static RecordModel[] BuildFromCSV(string path,
-            double vtnThreshold, double vtnSigma, double vtnDeviation,
-            double vtpThreshold, double vtpSigma, double vtpDeviation,
-            int seed, int sweeps
+        public static RecordModel[] BuildFromCsv(
+            string path,
+            int seed
         ) {
-            var rt = new List<RecordModel>();
 
-            var param = new Parameter.Parameter(
-                vtn: new Transistor(vtnThreshold, vtnSigma, vtnThreshold),
-                vtp: new Transistor(vtpThreshold, vtpSigma, vtpThreshold),
-                seed: seed, "", 0).ToString();
 
             string doc;
             using (var sr = new StreamReader(path)) doc = sr.ReadToEnd();
-            doc = doc.Trim(' ');
 
             var container = doc.Split("#", StringSplitOptions.RemoveEmptyEntries).Skip(1).ToList();
 
             // 信号名のリスト
-            var signals = container[0].Split(",", StringSplitOptions.RemoveEmptyEntries).Skip(1).ToArray();
+            var signals = container[0].Split(",", StringSplitOptions.RemoveEmptyEntries)
+                .Skip(1)
+                .Select(item => item.Trim('\n', ' ')).ToArray();
 
-            container.Skip(1).AsParallel()
+
+            return container.Skip(1).AsParallel()
                 .WithDegreeOfParallelism(10)
-                .ForAll(block => {
+                .SelectMany(block => {
+                    var rt = new List<RecordModel>();
+
                     // ブロックを改行で分割
-                    var box = block.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
+                    var box = block.Split("\n", StringSplitOptions.RemoveEmptyEntries);
 
                     // 1行目は#sweep[num] [num]を取り出してsweep値とする
-                    var sweep = int.Parse(box[0].Replace("#sweep", ""));
-                    for (var i = 1; i < box.Length; i++) {
-                        var split = box[i].Split(",", StringSplitOptions.RemoveEmptyEntries)
-                            .Select(s => decimal.Parse(s, NumberStyles.Float)).ToArray();
-                        var time = split.First();
-                        for (var j = 1; j < split.Length; j++) {
-                            rt.Add(new RecordModel {
-                                Key = Parameter.Parameter.EncodeKey(signals[j - 1], time),
-                                Sweep = sweep,
-                                Value = split[j]
-                            });
-                        }
-                    }
-                });
+                    var sweep = int.Parse(box[0].Replace("sweep", ""));
 
-            return rt.ToArray();
+                    // データのパース
+                    // Time, Val1, Val2, val3...
+                    return box
+                        .Skip(1) // sweep [num] の行を飛ばす
+                        .Select(b => b.Split(',', StringSplitOptions.RemoveEmptyEntries))
+                        .Select(b => b.Select(s => decimal.Parse(s, NumberStyles.Float)).ToArray())
+                        .SelectMany(b => b
+                            .Skip(1) // Timeを飛ばす
+                                .Select((v, i) => new RecordModel {
+                                    Signal = signals[i],
+                                    Time = b[0],
+                                    Seed = seed,
+                                    Sweep = sweep,
+                                    Value = v
+                                }));
+                }).ToArray();
+
         }
     }
 }

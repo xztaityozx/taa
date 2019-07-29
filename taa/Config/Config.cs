@@ -6,14 +6,29 @@ using YamlDotNet.Serialization;
 
 namespace taa.Config {
     public sealed class Config {
+        // conditions BNF
+        // <condition> := <name>: <cond>
+        // <cond> := <value><operator><value>
+        // <value> := <signal>, <number>
+        // <signal> := <signalName>[<time>]
+        // <time> := <number>
+        // <number> := [0-9](.[0-9]+)*, [0-9](.[0-9]+)<siUnit> 
+        // <siUnit> := G, M, K, m, u, n, p
+        // <operator> := <, <=, >, >=, !=, ==
+        // <signalName> := <string>
+        // <name> := <string>
+        // <string> := ([a-zA-Z0-9])+
         [YamlMember(Alias = "conditions")]
         public Dictionary<string, string> Conditions { get; set; }
+
         [YamlMember(Alias = "expressions")]
         public List<string> Expressions { get; set; }
         [YamlMember(Alias = "logDir")]
         public string LogDir { get; set; }
         [YamlMember(Alias = "connection")]
         public string ConnectionsString { get; set; }
+        [YamlMember(Alias = "machine")]
+        public string MachineName { get; set; }
 
         public Config() { }
 
