@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
 using taa.Model;
 
 namespace taa.Factory {
@@ -44,13 +43,7 @@ namespace taa.Factory {
                         .Select(b => b.Select(s => decimal.Parse(s, NumberStyles.Float)).ToArray())
                         .SelectMany(b => b
                             .Skip(1) // Timeを飛ばす
-                                .Select((v, i) => new RecordModel {
-                                    Signal = signals[i],
-                                    Time = b[0],
-                                    Seed = seed,
-                                    Sweep = sweep,
-                                    Value = v
-                                }));
+                            .Select((v, i) => new RecordModel(sweep, seed, signals[i], b[0], v)));
                 }).ToArray();
 
         }

@@ -1,6 +1,11 @@
 
-namespace taa {
+using Microsoft.EntityFrameworkCore;
+
+namespace taa.Parameter {
+    [Owned]
     public class Transistor {
+        public static string ToTableName(Transistor vtn, Transistor vtp) => $"vtn:{vtn}_vtp:{vtp}";
+
         public bool Equals(Transistor other) {
             return Voltage == other.Voltage && Sigma == other.Sigma && Deviation == other.Deviation;
         }
@@ -29,7 +34,7 @@ namespace taa {
         }
         
         public override string ToString() {
-            return $"voltage_{Voltage}_sigma_{Sigma}_deviation_{Deviation}";
+            return $"v{Voltage}_s{Sigma}_d{Deviation}";
         }
 
         public static  bool operator ==(Transistor s, Transistor t) {

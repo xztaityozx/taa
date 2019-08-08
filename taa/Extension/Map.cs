@@ -23,4 +23,18 @@ namespace taa {
             set => base[key] = value;
         }
     }
+
+    public static class MapExtension {
+        public static Map<TKey, TValue> ToMap<T, TKey, TValue>(this IEnumerable<T> @this, Func<T, TKey> keySelector,
+            Func<T, TValue> valueSelector)
+        {
+            var rt = new Map<TKey, TValue>();
+
+            foreach (var x in @this) {
+                rt[keySelector(x)] = valueSelector(x);
+            }
+
+            return rt;
+        }
+    }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using taa;
+using taa.Parameter;
 using Xunit;
 
 namespace UnitTest {

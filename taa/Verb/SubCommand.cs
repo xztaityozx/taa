@@ -5,8 +5,13 @@ using Logger;
 
 namespace taa.Verb {
     public abstract class SubCommand : ISubCommand {
-        protected Logger.Logger Logger;
-        public abstract bool Run();
+        protected Logger.Logger Logger = new Logger.Logger();
+        public abstract Exception Run();
+
+        public void LoadConfig(string path) {
+            Config.Config.GetInstance(string.IsNullOrEmpty(ConfigFile) ? path : ConfigFile);
+            Bind();
+        }
 
         protected void Bind() {
             if ($"{Sigma}" != $"{-0.1}") VtnSigma = VtpSigma = Sigma;
@@ -20,9 +25,8 @@ namespace taa.Verb {
         public double VtpSigma { get; set; }
         public double VtpDeviation { get; set; }
         public double Sigma { get; set; }
-        public string Host { get; set; }
-        public int Port { get; set; }
         public int Sweeps { get; set; }
+        public bool NoProgressBar { get; set; }
     }
     public interface ISubCommand {
         [Option("config", Required = false, HelpText = "コンフィグファイルへのパスです")]
@@ -51,5 +55,8 @@ namespace taa.Verb {
 
         [Option("sweeps", Required = false, Default = 5000, HelpText = "number of sweeps")]
         int Sweeps { get; set; }
+
+        [Option("no-progressbar")]
+        bool NoProgressBar { get; set; }
     }
 }

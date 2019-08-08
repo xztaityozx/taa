@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using CommandLine;
@@ -13,8 +14,8 @@ namespace taa {
     internal class Program {
         private static void Main(string[] args) {
 
-            //var param = @"push --seed 6 C:\Users\xztaityozx\source\repos\xztaityozx\taa\UnitTest\file\SEED00006.csv".Split(" ");
-            var param = @"get --start 6 --end 6".Split(" ");
+            var param = @"push C:\Users\xztaityozx\source\repos\xztaityozx\taa\UnitTest\file\00006".Split(" ", StringSplitOptions.RemoveEmptyEntries);
+            //var param = @"get --start 6 --end 6".Split(" ");
 
             Config.Config.GetInstance("~/.config/taa/config.yml");
 
@@ -23,11 +24,16 @@ namespace taa {
             var res = parser.ParseArguments<Push, Get>(param).MapResult(
                 (Push p) => p.Run(),
                 (Get g) => g.Run(),
-                err => false
+                err => null
             );
 
             Console.ResetColor();
-            if (!res) Environment.Exit(1);
+            if (res == null) return;
+            res.WL();
+            using (var sw = new StreamWriter("./log")) {
+                sw.WriteLine(res);
+            }
+            Environment.Exit(1);
         }
 
     }

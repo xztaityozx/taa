@@ -2,16 +2,22 @@ using System;
 
 namespace taa.Model {
     public class RecordModel {
-        public long Id { get;  set; }
         public long Sweep { get;  set; }
         public decimal Value { get;  set; }
-        public int Seed { get;  set; }
-        public string Signal { get;  set; }
-        public decimal Time { get;  set; }
-        public string Key => EncodeKey(Signal, Time);
+        public long Seed { get;  set; }
+        public string Key { get; set; }
+
+        public RecordModel() { }
+
+        public RecordModel(long sweep, long seed, string signal, decimal time, decimal value) {
+            Sweep = sweep;
+            Seed = seed;
+            Key = EncodeKey(signal, time);
+            Value = value;
+        }
 
         public override string ToString() {
-            return $"Signal:{Signal}, Time:{Time}, Sweep:{Sweep}, Value:{Value}, Seed:{Seed}";
+            return $"Signal/Time:{Key}, Sweep:{Sweep}, Value:{Value}, Seed:{Seed}";
         }
 
         public static string EncodeKey(string signal, decimal time) => $"{signal}/{time:E10}";
