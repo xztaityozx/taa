@@ -3,11 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using CommandLine;
-using Microsoft.EntityFrameworkCore;
 using ShellProgressBar;
-using taa.Extension;
 using taa.Factory;
-using taa.Model;
 using taa.Parameter;
 using taa.Repository;
 
@@ -20,18 +17,18 @@ namespace taa.Verb {
         private Exception Do(IProgressBar bar=null) {
             foreach (var inputFile in InputFiles) {
                 try {
+                    // ファイル名からSeedを得る
                     var seed = int.Parse(inputFile
                         .Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries).Last());
+                    
                     var db = Transistor.ToTableName(
                         new Transistor(VtnVoltage, VtnSigma, VtnDeviation),
                         new Transistor(VtpVoltage, VtpSigma, VtpDeviation)
                     );
 
-                    using (var repo = new MssqlRepository(db,
-                        mb => mb.Entity<RecordModel>().HasKey(e => new {e.Sweep, e.Seed, e.Key})
-                    )) {
-                        repo.BulkUpsert(RecordFactory.BuildFromCsv(inputFile, seed));
-                    }
+                    var repo = new MssqlRepository();
+                    repo.Use(db);
+                    repo.BulkUpsert(RecordFactory.BuildFromCsv(inputFile, seed));
 
                     if (bar != null) bar.Tick();
                     else Logger.Info($"{inputFile} pushed");

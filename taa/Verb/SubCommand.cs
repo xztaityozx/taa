@@ -10,6 +10,13 @@ namespace taa.Verb {
 
         public void LoadConfig(string path) {
             Config.Config.GetInstance(string.IsNullOrEmpty(ConfigFile) ? path : ConfigFile);
+            var now = DateTime.Now;
+            Logger.AddHook(new FileHook(
+                Path.Combine(
+                    Config.Config.GetInstance().LogDir,
+                    $"{now.Year:D4}-{now.Month:D2}-{now.Day:D2}-{now.Hour:D2}-{now.Minute:D2}-{now.Second:D2}-{now.Millisecond:D2}.log"
+                )
+            ));
             Bind();
         }
 

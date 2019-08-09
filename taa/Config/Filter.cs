@@ -52,13 +52,13 @@ namespace taa.Config {
             return $"{Value(box[0])}{box[1]}{Value(box[2])}";
         }
 
-        public Tuple<string, long>[] Aggregate(IEnumerable<Map<string, decimal>> list) {
+        public Tuple<string, long>[] Aggregate(List<Map<string, decimal>> list) {
             var map = new Map<string, long>();
 
-            Delegates
-                .AsParallel()
-                .WithDegreeOfParallelism(Delegates.Count)
-                .ForAll(x => { map[x.Name] = list.Count(x.Filter); });
+            foreach (var d in Delegates) {
+                map[d.Name] = list.Count(d.Filter);
+            }
+
             return map.Select(x => Tuple.Create(x.Key, x.Value)).ToArray();
         }
 

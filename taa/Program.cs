@@ -30,9 +30,6 @@ namespace taa {
             Console.ResetColor();
             if (res == null) return;
             res.WL();
-            using (var sw = new StreamWriter("./log")) {
-                sw.WriteLine(res);
-            }
             Environment.Exit(1);
         }
 

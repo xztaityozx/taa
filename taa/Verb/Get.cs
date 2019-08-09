@@ -5,9 +5,11 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
 using CommandLine;
 using Kurukuru;
 using Microsoft.EntityFrameworkCore;
+using ShellProgressBar;
 using taa.Config;
 using taa.Extension;
 using taa.Factory;
@@ -35,16 +37,17 @@ namespace taa.Verb {
             long seedStart, long seedEnd) {
             var dn = Transistor.ToTableName(vtn, vtp);
 
-            using (var repo = new MssqlRepository(dn,
-                mb => mb.Entity<RecordModel>().HasKey(e => new { e.Sweep, e.Key, e.Seed }))) {
-                return repo.Count(r => r.Sweep.Within(sweepStart, sweepEnd) && r.Seed.Within(seedStart, seedEnd),
-                    filter);
-            }
+            var repo = new MssqlRepository();
+            repo.Use(dn);
+            return repo.Count(r => r.Sweep.Within(sweepStart, sweepEnd) && r.Seed.Within(seedStart, seedEnd),
+                filter);
+
         }
 
         public override Exception Run() {
             LoadConfig("~/.config/taa/config.yml");
 
+            // SiUnitを考慮してオプションをパース
             var sigmaRange = SigmaRange.Split(",", StringSplitOptions.RemoveEmptyEntries)
                 .Select(x => (double) x.ParseDecimalWithSiUnit()).ToArray();
             var sweepRange = SweepRange.Split(",", StringSplitOptions.RemoveEmptyEntries)
@@ -52,11 +55,14 @@ namespace taa.Verb {
             var seedRange = SeedRange.Split(",", StringSplitOptions.RemoveEmptyEntries)
                 .Select(x => (long) x.ParseDecimalWithSiUnit()).ToArray();
 
+            // 数え上げ用のFilterをBuild
+            Logger.Info("Start build filter");
             var filter = new Filter(Config.Config.GetInstance().Conditions, Config.Config.GetInstance().Expressions);
+            Logger.Info("Finished build filter");
 
-            var map = new Map<string, Map<decimal, long>>();
+            var result = new Map<string, Map<decimal, long>>();
             foreach (var s in filter.Delegates) {
-                map[s.Name] = new Map<decimal, long>();
+                result[s.Name] = new Map<decimal, long>();
             }
 
             var sweepStart = sweepRange[0];
@@ -66,8 +72,21 @@ namespace taa.Verb {
 
             var sigmaList = new List<double>();
 
-            Spinner.Start("Aggregating...", () => {
-                if (sigmaRange.Length == 0) {
+            Logger.Info("Vtn:");
+            Logger.Info($"\tVoltage: {VtnVoltage}");
+            Logger.Info($"\tSigma: {VtnSigma}");
+            Logger.Info($"\tDeviation: {VtnDeviation}");
+            Logger.Info("Vtp:");
+            Logger.Info($"\tVoltage: {VtpVoltage}");
+            Logger.Info($"\tSigma: {VtpSigma}");
+            Logger.Info($"\tDeviation: {VtpDeviation}");
+
+            Logger.Info($"Sweeps: start: {sweepStart}, end: {sweepEnd}");
+            Logger.Info($"Seed: start: {seedStart}, end: {seedEnd}");
+
+            if (sigmaRange.Length == 0) {
+                Spinner.Start("Aggregating...", () => {
+
                     // Sigmaが固定
                     var vtn = new Transistor(VtnVoltage, VtnSigma, VtnDeviation);
                     var vtp = new Transistor(VtpVoltage, VtpSigma, VtpDeviation);
@@ -76,11 +95,23 @@ namespace taa.Verb {
 
                     var res = Do(vtn, vtp, filter, sweepStart, sweepEnd, seedStart, seedEnd);
                     foreach (var (key, value) in res) {
-                        map[key][vtn.Sigma] = value;
+                        result[key][vtn.Sigma] = value;
                     }
-                }
-                else {
-                    // Sigmaを動かす
+                });
+            }
+            else {
+
+                // Sigmaを動かす
+                Logger.Info($"Range Sigma: start: {sigmaRange[0]}, step: {sigmaRange[1]}, stop: {sigmaRange[2]}");
+
+                using (var bar = new ProgressBar((int) ((sigmaRange[2] - sigmaRange[0]) / sigmaRange[1]),
+                    "Aggregating...", new ProgressBarOptions {
+                        ForegroundColor = ConsoleColor.DarkBlue,
+                        BackgroundCharacter = '-',
+                        ForegroundColorDone = ConsoleColor.Green,
+                        ProgressCharacter = '>',
+                        BackgroundColor = ConsoleColor.DarkGray
+                    })) {
                     for (var sigma = sigmaRange[0]; sigma <= sigmaRange[2]; sigma += sigmaRange[1]) {
                         var vtn = new Transistor(VtnVoltage, sigma, VtnDeviation);
                         var vtp = new Transistor(VtpVoltage, sigma, VtpDeviation);
@@ -88,12 +119,15 @@ namespace taa.Verb {
 
                         var res = Do(vtn, vtp, filter, sweepStart, sweepEnd, seedStart, seedEnd);
                         foreach (var (key, value) in res) {
-                            map[key][vtn.Sigma] = value;
+                            result[key][vtn.Sigma] = value;
                         }
+                        bar.Tick();
                     }
                 }
-            });
+            }
 
+
+            // 出力
             var box = new List<IEnumerable<string>> {
                 new[] {
                     $"VtnThreshold: {VtnVoltage}",
@@ -110,7 +144,7 @@ namespace taa.Verb {
             };
 
 
-            foreach (var (key, value) in map) {
+            foreach (var (key, value) in result) {
                 box.Add(new[] {key}.Concat(value.Select(x => $"{x}")));
             }
 
@@ -123,7 +157,7 @@ namespace taa.Verb {
                     }
                 }
             });
-            
+
             return null;
         }
     }
