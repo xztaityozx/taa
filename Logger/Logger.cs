@@ -21,7 +21,7 @@ namespace Logger {
         public void AddHook(ILogHook hook) => hooks.Add(hook);
 
         private void Write(object message, LogLevel level, bool hook = true) {
-            WriteToHooks(message, level);
+            if(hook) WriteToHooks(message, level);
 
             // 設定したLogLevelより低かったらSTDOUTに出さない
             if (level < LogLevel) return;

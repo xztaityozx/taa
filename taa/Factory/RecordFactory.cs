@@ -8,11 +8,10 @@ using taa.Model;
 namespace taa.Factory {
     public static class RecordFactory {
         public static RecordModel[] BuildFromCsv(
-            string path,
-            int seed
+            string path
         ) {
-
-
+            var seed = int.Parse(path.Split(Path.DirectorySeparatorChar).Last());
+    
             string doc;
             using (var sr = new StreamReader(path)) doc = sr.ReadToEnd();
 

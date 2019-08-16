@@ -14,14 +14,14 @@ namespace taa {
     internal class Program {
         private static void Main(string[] args) {
 
-            var param = @"push C:\Users\xztaityozx\source\repos\xztaityozx\taa\UnitTest\file\00006".Split(" ", StringSplitOptions.RemoveEmptyEntries);
+            //var param = @"push C:\Users\xztaityozx\source\repos\xztaityozx\taa\UnitTest\file\00006".Split(" ", StringSplitOptions.RemoveEmptyEntries);
             //var param = @"get --start 6 --end 6".Split(" ");
 
             Config.Config.GetInstance("~/.config/taa/config.yml");
 
             var parser = Parser.Default;
 
-            var res = parser.ParseArguments<Push, Get>(param).MapResult(
+            var res = parser.ParseArguments<Push, Get>(args).MapResult(
                 (Push p) => p.Run(),
                 (Get g) => g.Run(),
                 err => null

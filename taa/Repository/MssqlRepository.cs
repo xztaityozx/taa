@@ -37,6 +37,9 @@ namespace taa.Repository {
                 );
         }
 
+        /// <summary>
+        /// Context class for EntityFrameworkCore
+        /// </summary>
         internal class Context : DbContext {
             private readonly string name;
             public Context(string name) => this.name = name;
