@@ -71,7 +71,7 @@ namespace taa.Config {
             var box = value.Split(new []{"[","]"}, StringSplitOptions.RemoveEmptyEntries);
             var signal = box[0];
             var time = box[1].ParseDecimalWithSiUnit();
-            return $"map[\"{RecordModel.EncodeKey(signal, time)}\"]";
+            return $"map[\"{Record.EncodeKey(signal, time)}\"]";
         }
     }
 }

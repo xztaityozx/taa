@@ -21,13 +21,16 @@ namespace Logger {
         public void AddHook(ILogHook hook) => hooks.Add(hook);
 
         private void Write(object message, LogLevel level, bool hook = true) {
-            if(hook) WriteToHooks(message, level);
+
+            var msg = $"[{level}][{DateTime.Now}] {message}";
+
+            if(hook) WriteToHooks(msg, level);
 
             // 設定したLogLevelより低かったらSTDOUTに出さない
             if (level < LogLevel) return;
 
             Console.ForegroundColor = consoleColors[(int) level];
-            Console.WriteLine(message);
+            Console.WriteLine(msg);
             Console.ResetColor();
         }
 
@@ -77,7 +80,7 @@ namespace Logger {
             this.path = path;
             if (File.Exists(path)) return;
             using (var f = File.Create(path)) {
-                Console.WriteLine($"[Logger] : Created logfile {f.Name}");
+                Console.Error.WriteLine($"[Logger] : Created logfile {f.Name}");
             }
         }
 

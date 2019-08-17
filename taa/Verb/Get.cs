@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using CommandLine;
 using Kurukuru;
@@ -44,7 +45,7 @@ namespace taa.Verb {
 
         }
 
-        public override Exception Run() {
+        public override Exception Run(CancellationToken token) {
             LoadConfig("~/.config/taa/config.yml");
 
             // SiUnitを考慮してオプションをパース
@@ -70,7 +71,6 @@ namespace taa.Verb {
             var seedStart = seedRange[0];
             var seedEnd = seedRange[1];
 
-            var sigmaList = new List<double>();
 
             Logger.Info("Vtn:");
             Logger.Info($"\tVoltage: {VtnVoltage}");
@@ -83,6 +83,8 @@ namespace taa.Verb {
 
             Logger.Info($"Sweeps: start: {sweepStart}, end: {sweepEnd}");
             Logger.Info($"Seed: start: {seedStart}, end: {seedEnd}");
+
+            var sigmaList = new List<double>();
 
             if (sigmaRange.Length == 0) {
                 Spinner.Start("Aggregating...", () => {
@@ -100,27 +102,30 @@ namespace taa.Verb {
                 });
             }
             else {
-
                 // Sigmaを動かす
-                Logger.Info($"Range Sigma: start: {sigmaRange[0]}, step: {sigmaRange[1]}, stop: {sigmaRange[2]}");
+                var sigmaStart = sigmaRange[0];
+                var sigmaStep = sigmaRange[1];
+                var sigmaStop = sigmaRange[2];
+                Logger.Info($"Range Sigma: start: {sigmaStart}, step: {sigmaStep}, stop: {sigmaStop}");
 
-                using (var bar = new ProgressBar((int) ((sigmaRange[2] - sigmaRange[0]) / sigmaRange[1]),
-                    "Aggregating...", new ProgressBarOptions {
-                        ForegroundColor = ConsoleColor.DarkBlue,
-                        BackgroundCharacter = '-',
-                        ForegroundColorDone = ConsoleColor.Green,
-                        ProgressCharacter = '>',
-                        BackgroundColor = ConsoleColor.DarkGray
-                    })) {
-                    for (var sigma = sigmaRange[0]; sigma <= sigmaRange[2]; sigma += sigmaRange[1]) {
+                for (var s = sigmaStart; s <= sigmaStop; s += sigmaStep) sigmaList.Add(s);
+
+                using (var bar = new ProgressBar(sigmaList.Count, "Aggregating...", new ProgressBarOptions {
+                    ForegroundColor = ConsoleColor.DarkBlue,
+                    BackgroundCharacter = '-',
+                    ForegroundColorDone = ConsoleColor.Green,
+                    ProgressCharacter = '>',
+                    BackgroundColor = ConsoleColor.DarkGray
+                })) {
+                    foreach (var sigma in sigmaList) {
                         var vtn = new Transistor(VtnVoltage, sigma, VtnDeviation);
                         var vtp = new Transistor(VtpVoltage, sigma, VtpDeviation);
-                        sigmaList.Add(sigma);
 
                         var res = Do(vtn, vtp, filter, sweepStart, sweepEnd, seedStart, seedEnd);
                         foreach (var (key, value) in res) {
                             result[key][vtn.Sigma] = value;
                         }
+
                         bar.Tick();
                     }
                 }

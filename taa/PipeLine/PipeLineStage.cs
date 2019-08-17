@@ -52,13 +52,13 @@ namespace taa.PipeLine {
         private PipeLineStage(CancellationToken token, int workers, int bufferSize) {
             this.token = token;
             this.workers = workers;
-            Results=new BlockingCollection<TResult>(bufferSize);
+            Results = new BlockingCollection<TResult>(bufferSize);
         }
 
         private void BuildSource(IEnumerable<TSource> sources) {
             Sources=new BlockingCollection<TSource>();
             foreach (var source in sources) {
-                Sources.TryAdd(source);
+                Sources.Add(source, token);
             }
             Sources.CompleteAdding();
         }
@@ -114,23 +114,30 @@ namespace taa.PipeLine {
             OnFinish?.Invoke();
         }
 
+        public int TotalResultsCount { get; private set; } = 0;
 
         private void Worker() {
-            foreach (var source in Sources.GetConsumingEnumerable()) {
+            foreach (var source in Sources.GetConsumingEnumerable(token)) {
+
+                // Cancelが発生していたら例外を投げる
+                token.ThrowIfCancellationRequested();
+                
                 switch (Mode) {
                     case PipeLineStageMode.Last:
                         outputAction(source);
                         break;
                     case PipeLineStageMode.SelectMany: {
                         foreach (var result in manyFilter(source)) {
-                            Results.TryAdd(result);
+                            Results.Add(result, token);
+                            TotalResultsCount++;
                         }
 
                         break;
                     }
 
                     case PipeLineStageMode.Select:
-                        Results.TryAdd(filter(source));
+                        Results.Add(filter(source), token);
+                        TotalResultsCount++;
                         break;
                     default:
                         throw new ArgumentOutOfRangeException();

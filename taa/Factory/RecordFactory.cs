@@ -7,7 +7,7 @@ using taa.Model;
 
 namespace taa.Factory {
     public static class RecordFactory {
-        public static RecordModel[] BuildFromCsv(
+        public static Record[] BuildFromCsv(
             string path
         ) {
             var seed = int.Parse(path.Split(Path.DirectorySeparatorChar).Last());
@@ -26,7 +26,7 @@ namespace taa.Factory {
             return container.Skip(1).AsParallel()
                 .WithDegreeOfParallelism(10)
                 .SelectMany(block => {
-                    var rt = new List<RecordModel>();
+                    var rt = new List<Record>();
 
                     // ブロックを改行で分割
                     var box = block.Split("\n", StringSplitOptions.RemoveEmptyEntries);
@@ -42,7 +42,7 @@ namespace taa.Factory {
                         .Select(b => b.Select(s => decimal.Parse(s, NumberStyles.Float)).ToArray())
                         .SelectMany(b => b
                             .Skip(1) // Timeを飛ばす
-                            .Select((v, i) => new RecordModel(sweep, seed, signals[i], b[0], v)));
+                            .Select((v, i) => new Record(sweep, seed, signals[i], b[0], v)));
                 }).ToArray();
 
         }

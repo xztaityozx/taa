@@ -2,9 +2,39 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
+using ShellProgressBar;
+using taa.Model;
+using taa.Verb;
 
 namespace taa.Extension {
     public static class Extension {
+
+        public static async Task TickWithPush(this ProgressBarBase @this,  IList<Record> list, CancellationToken token, Repository.Repository<Record> repo, string msg) {
+            using (var cts = new CancellationTokenSource()) {
+                var tickerToken = cts.Token;
+                var count = list.Count;
+
+                await Task.WhenAll(
+                    Task.Factory.StartNew(() => repo.BulkUpsert(list), token).ContinueWith(task => cts.Cancel(), token),
+                    Task.Factory.StartNew(() => {
+                        for (var i = 0; i < count; i++) {
+                            if (tickerToken.IsCancellationRequested) return i;
+                            @this.Tick(msg);
+                            Thread.Sleep(1);
+                        }
+
+                        return count;
+                    }, tickerToken).ContinueWith(task => {
+                        var current = task.Result;
+                        for (var i = current; i < count; i++) @this.Tick(msg);
+                    }, token)
+                );
+            }
+        }
+
         public static void WL<T>(this IEnumerable<T> @this) {
             foreach (var item in @this) {
                 Console.WriteLine(item);

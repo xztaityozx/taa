@@ -1,12 +1,13 @@
 using System;
 using System.IO;
+using System.Threading;
 using CommandLine;
 using Logger;
 
 namespace taa.Verb {
     public abstract class SubCommand : ISubCommand {
         protected Logger.Logger Logger = new Logger.Logger();
-        public abstract Exception Run();
+        public abstract Exception Run(CancellationToken token);
 
         public void LoadConfig(string path) {
             Config.Config.GetInstance(string.IsNullOrEmpty(ConfigFile) ? path : ConfigFile);

@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.Common;
 using System.Linq;
-using System.Text;
 using EFCore.BulkExtensions;
 using Microsoft.EntityFrameworkCore;
 using taa.Config;
@@ -10,13 +8,13 @@ using taa.Extension;
 using taa.Model;
 
 namespace taa.Repository {
-    public class MssqlRepository : Repository<RecordModel> {
+    public class MssqlRepository : Repository<Record> {
         private string name;
         public override void Use(string db) {
             name = db;
         }
 
-        public override void BulkUpsert(IList<RecordModel> list) {
+        public override void BulkUpsert(IList<Record> list) {
             using (var context = new Context(name)) {
                 context.Database.EnsureCreated();
                 using (var tr = context.Database.BeginTransaction()) {
@@ -26,7 +24,7 @@ namespace taa.Repository {
             }
         }
 
-        public override Tuple<string, long>[] Count(Func<RecordModel, bool> whereFunc, Filter filter) {
+        public override Tuple<string, long>[] Count(Func<Record, bool> whereFunc, Filter filter) {
             using (var context = new Context(name))
                 return filter.Aggregate(
                     context
@@ -44,7 +42,7 @@ namespace taa.Repository {
             private readonly string name;
             public Context(string name) => this.name = name;
 
-            public DbSet<RecordModel> Records;
+            public DbSet<Record> Records { get; set; }
 
             protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) {
                 base.OnConfiguring(optionsBuilder);
@@ -54,7 +52,7 @@ namespace taa.Repository {
 
             protected override void OnModelCreating(ModelBuilder modelBuilder) {
                 base.OnModelCreating(modelBuilder);
-                modelBuilder.Entity<RecordModel>().HasKey(e => new {e.Sweep, e.Key, e.Seed});
+                modelBuilder.Entity<Record>().HasKey(e => new {e.Sweep, e.Key, e.Seed});
             }
         }
     }
