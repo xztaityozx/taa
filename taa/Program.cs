@@ -15,24 +15,22 @@ namespace taa {
         private static void Main(string[] args) {
             Config.Config.GetInstance("~/.config/taa/config.yml");
 
-            var cts = new CancellationTokenSource();
-            Console.CancelKeyPress += (sender, eventArgs) => cts.Cancel();
+            using (var cts = new CancellationTokenSource()) {
+                Console.CancelKeyPress += (sender, eventArgs) => cts.Cancel();
 
-            var param = @"push -b 100000 -d C:\Users\xztaityozx\source\repos\xztaityozx\taa\UnitTest\file\".Split(' ',
-                StringSplitOptions.RemoveEmptyEntries);
+                var token = cts.Token;
 
-            var parser = Parser.Default;
-            var res = parser.ParseArguments<Push, Get>(param).MapResult(
-                (Push p) => p.Run(cts.Token),
-                (Get g) => g.Run(cts.Token),
-                err => null
-            );
-
-            Console.ResetColor();
-            if (res == null) return;
-            res.WL();
-            Environment.Exit(1);
-
+                var parser = Parser.Default;
+                var res = parser.ParseArguments<Push, Get>(args).MapResult(
+                    (Push p) => p.Run(token),
+                    (Get g) => g.Run(token),
+                    err => null
+                );
+                Console.ResetColor();
+                if (res == null) return;
+                res.WL();
+                Environment.Exit(1);
+            }
         }
 
     }

@@ -34,7 +34,7 @@ namespace taa.Verb {
         [Option("out", Default = "./out.csv", HelpText = "結果を出力するCSVファイルへのパスです")]
         public string OutFile { get; set; }
 
-        private Tuple<string, long>[] Do(Transistor vtn, Transistor vtp, Filter filter, long sweepStart, long sweepEnd,
+        private static IEnumerable<Tuple<string, long>> Do(Transistor vtn, Transistor vtp, Filter filter, long sweepStart, long sweepEnd,
             long seedStart, long seedEnd) {
             var dn = Transistor.ToTableName(vtn, vtp);
 
@@ -131,37 +131,44 @@ namespace taa.Verb {
                 }
             }
 
-
             // 出力
+            Logger.Info("\n" + filter);
             var box = new List<IEnumerable<string>> {
                 new[] {
-                    $"VtnThreshold: {VtnVoltage}",
-                    $"VtnSigma: {(sigmaRange.Length == 0 ? $"{VtnSigma}" : SigmaRange)}",
-                    $"VtnDeviation: {VtnDeviation}",
-                    $"VtpThreshold: {VtpVoltage}",
-                    $"VtpSigma: {(sigmaRange.Length == 0 ? $"{VtpSigma}" : SigmaRange)}",
-                    $"VtpDeviation: {VtpDeviation}",
-                    $"TotalSweeps: {(sweepEnd - sweepStart + 1) * (seedEnd - seedStart + 1)}"
+                    "VtnThreshold",
+                    "VtnSigma",
+                    "VtnDeviation",
+                    "VtpThreshold",
+                    "VtpSigma",
+                    "VtpDeviation",
+                    "TotalSweeps"
                 },
                 new[] {
+                    $"{VtnVoltage}",
+                    $"{(sigmaRange.Length == 0 ? $"{VtnSigma}" : SigmaRange)}",
+                    $"{VtnDeviation}",
+                    $"{VtpVoltage}",
+                    $"{(sigmaRange.Length == 0 ? $"{VtpSigma}" : SigmaRange)}",
+                    $"{VtpDeviation}",
+                    $"{(sweepEnd - sweepStart + 1) * (seedEnd - seedStart + 1)}"
+                },
+               new[] {
                     "Filter"
                 }.Concat(sigmaList.Select(x => $"{x}"))
             };
 
 
             foreach (var (key, value) in result) {
-                box.Add(new[] {key}.Concat(value.Select(x => $"{x}")));
+                box.Add(new[] {key}.Concat(value.Select(x => $"{x.Value}")));
             }
 
-            Spinner.Start($"Write to {OutFile}", () => {
-                using (var sw = new StreamWriter(OutFile)) {
-                    foreach (var line in box) {
-                        var item = string.Join(",", line);
-                        sw.WriteLine(item);
-                        item.WL();
-                    }
+            using (var sw = new StreamWriter(OutFile)) {
+                foreach (var line in box) {
+                    var item = string.Join(",", line);
+                    sw.WriteLine(item);
+                    item.WL();
                 }
-            });
+            }
 
             return null;
         }

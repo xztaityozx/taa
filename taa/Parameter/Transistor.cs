@@ -37,6 +37,7 @@ namespace taa.Parameter {
             return $"v{Voltage}_s{Sigma}_d{Deviation}";
         }
 
+
         public static bool operator ==(Transistor s, Transistor t) {
             return s.Deviation == t.Deviation && s.Sigma == t.Sigma && s.Voltage == t.Voltage;
         }

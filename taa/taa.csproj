@@ -4,9 +4,10 @@
     <TargetFramework>netcoreapp2.1</TargetFramework>
     <RepositoryUrl>https://github.com/xztaityozx/taa</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <Version>1.0.2</Version>
-    <AssemblyVersion>1.0.2.0</AssemblyVersion>
+    <Version>1.0.3</Version>
+    <AssemblyVersion>1.0.3.0</AssemblyVersion>
     <LangVersion>latest</LangVersion>
+    <FileVersion>1.0.3.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,7 +21,6 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="2.2.0" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="2.2.4" />
     <PackageReference Include="ShellProgressBar" Version="4.2.0" />
     <PackageReference Include="YamlDotNet" Version="6.0.0" />
   </ItemGroup>

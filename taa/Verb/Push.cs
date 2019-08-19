@@ -45,7 +45,7 @@ namespace taa.Verb {
 
                     first.OnFinish += () => parentBar?.Tick($"Finished parse csv files. {first.TotalResultsCount} records were parsed");
 
-                    pipeline.Invoke(async () => {
+                    pipeline.Invoke(() => {
                         var list = new List<Record>();
                         var sum = 0;
 
@@ -55,7 +55,11 @@ namespace taa.Verb {
 
                             if (list.Count != QueueBuffer) continue;
                             sum += list.Count;
-                            await pushBar.TickWithPush(list, token, repo, "pushed");
+                            repo.BulkUpsert(list);
+                            foreach (var record in list) {
+                                pushBar.Tick($"{record}");
+                            }
+                            pushBar.Message = $"{sum} records pushed";
 
                             list = new List<Record>();
                         }
@@ -64,12 +68,15 @@ namespace taa.Verb {
 
                         sum += list.Count;
                         repo.BulkUpsert(list);
+                        foreach (var record in list) {
+                            pushBar.Tick($"{record}");
+                        }
 
-                        //pushBar.TickDelta(token, list.Count, $"{sum} records were pushed", () => {
-                        //});
+                        pushBar.Message = $"{sum} records pushed";
+
                     });
 
-                    parentBar.Tick();
+                    parentBar.Tick("Finished push");
                 }
             }
             catch (OperationCanceledException e) {
@@ -86,7 +93,17 @@ namespace taa.Verb {
             LoadConfig("~/.config/taa/config.yml");
 
             InputFiles = InputFiles.Any() ? InputFiles : Directory.EnumerateFiles(TargetDirectory);
-            
+
+            Logger.Info("Vtn:");
+            Logger.Info($"\tVoltage: {VtnVoltage}");
+            Logger.Info($"\tSigma: {VtnSigma}");
+            Logger.Info($"\tDeviation: {VtnDeviation}");
+            Logger.Info("Vtp:");
+            Logger.Info($"\tVoltage: {VtpVoltage}");
+            Logger.Info($"\tSigma: {VtpSigma}");
+            Logger.Info($"\tDeviation: {VtpDeviation}");
+            Logger.Info($"Total Files: {InputFiles.Count()}");
+
             Logger.Info("Start push");
             using (var bar = new ProgressBar(2, "Master", new ProgressBarOptions {
                 ForegroundColor = ConsoleColor.DarkGreen,

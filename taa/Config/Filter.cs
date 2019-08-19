@@ -28,6 +28,7 @@ namespace taa.Config {
                 map[key] = Decode(value);
             }
 
+            filterList.AddRange(conditions.Select(x=>$"{x.Key}: {x.Value}"));
             var ops = new[] {"||", "&&", "(", ")", "!"};
             var itr = new Interpreter();
             var ds = (from item in expressions
@@ -62,6 +63,10 @@ namespace taa.Config {
             return map.Select(x => Tuple.Create(x.Key, x.Value)).ToArray();
         }
 
+        private List<string> filterList = new List<string>();
+        public override string ToString() {
+            return string.Join("\n",filterList);
+        }
 
         private static string Value(string value) {
             return value.TryParseDecimalWithSiUnit(out var x) ? $"{x}M" : Signal(value);
