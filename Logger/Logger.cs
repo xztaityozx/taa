@@ -3,98 +3,89 @@ using System.Collections.Generic;
 using System.IO;
 
 namespace Logger {
-    public class Logger  {
-        private readonly List<ILogWriter> writers;
-        public LogLevel LogLevel { get; }
+    public class Logger {
+        private readonly List<ILogHook> hooks;
 
-        private void Write(LogLevel level, object message) {
-           if(level<LogLevel) return;
-           foreach (var w in writers) {
-               w.Write($"{DateTime.Now} [{level}] " + message, colorTable[(int)level]);
-           }
-        }
-
-        private readonly List<ConsoleColor> colorTable = new List<ConsoleColor> {
-            ConsoleColor.Cyan,
-            ConsoleColor.DarkYellow,
-            ConsoleColor.Red,
-            ConsoleColor.DarkRed,
-            ConsoleColor.DarkMagenta,
-            ConsoleColor.DarkGreen,
+        private readonly ConsoleColor[] consoleColors = {
+            ConsoleColor.White, ConsoleColor.DarkCyan,
+            ConsoleColor.DarkYellow, ConsoleColor.Red,
+            ConsoleColor.DarkRed
         };
 
-        public Logger(params ILogWriter[] writers) : this(LogLevel.Info, writers){}
-        
-        public Logger(LogLevel level, params ILogWriter[] writers) {
-            LogLevel = level;
-            this.writers=new List<ILogWriter>();
-            foreach (var w in writers) {
-                this.writers.Add(w);
+        public LogLevel LogLevel { get; set; } = LogLevel.Log;
+
+        public Logger() {
+            hooks = new List<ILogHook>();
+        }
+
+        public void AddHook(ILogHook hook) => hooks.Add(hook);
+
+        private void Write(object message, LogLevel level, bool hook = true) {
+
+            var msg = $"[{level}][{DateTime.Now}] {message}";
+
+            if(hook) WriteToHooks(msg, level);
+
+            // 設定したLogLevelより低かったらSTDOUTに出さない
+            if (level < LogLevel) return;
+
+            Console.ForegroundColor = consoleColors[(int) level];
+            Console.WriteLine(msg);
+            Console.ResetColor();
+        }
+
+        private void WriteToHooks(object message, LogLevel level) {
+            foreach (var logHook in hooks) {
+                logHook.Write(message, level);
             }
         }
-        
-        public void Info(object message) {
-            Write(LogLevel.Info, message);
+
+        public void Log(object message, bool hook = true) {
+            Write(message, LogLevel.Log, hook);
         }
 
-        public void Error(object message) {
-            Write(LogLevel.Error, message);
+        public void Info(object message, bool hook = true) {
+            Write(message, LogLevel.Info, hook);
         }
 
-        public void Fatal(object message) {
-            Write(LogLevel.Fatal, message);
+        public void Warn(object message, bool hook = true) {
+            Write(message, LogLevel.Warn, hook);
         }
 
-        public void Throw(object message, Exception e) {
-            Write(LogLevel.Throw, message);
-            throw e;
+        public void Error(object message, bool hook = true) {
+            Write(message, LogLevel.Error, hook);
         }
 
-        public void Warn(object message) {
-            Write(LogLevel.Warn, message);
-        }
-
-        public void Success(object message) {
-            Write(LogLevel.Result, message);
+        public void Fatal(object message, bool hook = true) {
+            Write(message, LogLevel.Fatal, hook);
         }
     }
-    
-    public enum LogLevel{
+
+    public enum LogLevel {
+        Log,
         Info,
         Warn,
         Error,
-        Throw,
-        Fatal,
-        Result
+        Fatal
     }
 
-    public interface ILogWriter {
-        void Write(object message, ConsoleColor color=ConsoleColor.White);
+    public interface ILogHook {
+        void Write(object message, LogLevel level);
     }
 
-    public class ConsoleLogger : ILogWriter {
+    public class FileHook : ILogHook {
+        private readonly string path;
 
-        public void Write(object message, ConsoleColor color = ConsoleColor.White) {
-            Console.ForegroundColor = color;
-            Console.WriteLine(message);
-            Console.ResetColor();
-        }
-    }
-
-    public class FileLogger : ILogWriter {
-        public void Write(object message, ConsoleColor color=ConsoleColor.White) {
-            File.AppendAllText(filePath, $"{message}");
-        }
-
-        private readonly string filePath;
-
-        public FileLogger(string file) {
-            filePath = file;
-            if (File.Exists(filePath)) return;
-            using (var f = File.Create(filePath)) {
-                Console.WriteLine($"[Logger] : Created logfile {f.Name}");
+        public FileHook(string path) {
+            this.path = path;
+            if (File.Exists(path)) return;
+            using (var f = File.Create(path)) {
+                Console.Error.WriteLine($"[Logger] : Created logfile {f.Name}");
             }
         }
-        
+
+        public void Write(object message, LogLevel level) {
+            File.AppendAllText(path, $"{message}");
+        }
     }
 }

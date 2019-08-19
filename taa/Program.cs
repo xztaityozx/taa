@@ -1,27 +1,36 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using CommandLine;
 using Logger;
-using MongoDB.Driver;
 using ShellProgressBar;
+using taa.Extension;
+using taa.Factory;
+using taa.Verb;
 
 namespace taa {
     internal class Program {
         private static void Main(string[] args) {
+            Config.Config.GetInstance("~/.config/taa/config.yml");
 
-            var parser = Parser.Default;
+            using (var cts = new CancellationTokenSource()) {
+                Console.CancelKeyPress += (sender, eventArgs) => cts.Cancel();
 
-            var res = parser.ParseArguments<Push, Pull, Get>(args).MapResult(
-                (Push p) => p.Run(),
-                (Pull p) => p.Run(),
-                (Get g) => g.Run(),
-                err => false
-            );
+                var token = cts.Token;
 
-            Console.ResetColor();
-            if (!res) Environment.Exit(1);
+                var parser = Parser.Default;
+                var res = parser.ParseArguments<Push, Get>(args).MapResult(
+                    (Push p) => p.Run(token),
+                    (Get g) => g.Run(token),
+                    err => null
+                );
+                Console.ResetColor();
+                if (res == null) return;
+                res.WL();
+                Environment.Exit(1);
+            }
         }
 
     }
